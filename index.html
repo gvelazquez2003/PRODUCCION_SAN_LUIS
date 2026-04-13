@@ -16,22 +16,25 @@
     <header class="topbar">
       <p class="eyebrow">Panel de formularios</p>
       <h1>PRODUCCION SAN LUIS</h1>
-      <a
-        class="sheet-link"
-        href="https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs/edit?gid=919776879#gid=919776879"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Abrir Google Sheet
-      </a>
-      <a
-        class="sheet-link"
-        href="https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Abrir version publica
-      </a>
+      <p class="topbar__subtitle">Selecciona el modulo que necesitas para gestionar la operacion diaria.</p>
+      <div class="topbar__links">
+        <a
+          class="sheet-link"
+          href="https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs/edit?gid=919776879#gid=919776879"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir Google Sheet
+        </a>
+        <a
+          class="sheet-link"
+          href="https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir version publica
+        </a>
+      </div>
     </header>
 
     <main class="main">
@@ -84,16 +87,8 @@
                 <option value="" selected disabled>Selecciona producto</option>
               </select>
             </label>
-
-            <label>
-              <span>Codigo (de PRODUCTOS)</span>
-              <input type="text" name="codigo" id="receta-codigo" readonly required />
-            </label>
-
-            <label>
-              <span>Producto (de PRODUCTOS)</span>
-              <input type="text" name="producto" id="receta-producto" readonly required />
-            </label>
+            <input type="hidden" name="codigo" id="receta-codigo" required />
+            <input type="hidden" name="producto" id="receta-producto" required />
 
             <label>
               <span>Receta (de RECETAS)</span>
