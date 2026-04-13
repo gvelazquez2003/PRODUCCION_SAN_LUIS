@@ -63,36 +63,6 @@ p {
   font-weight: 500;
 }
 
-.topbar__links {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-}
-
-.sheet-link {
-  display: inline-block;
-  padding: 0.7rem 1.05rem;
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--pdt-negro);
-  text-decoration: none;
-  font-weight: 700;
-  border: 1px solid rgba(192, 110, 50, 0.4);
-  box-shadow: 0 8px 22px rgba(62, 42, 22, 0.1);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.sheet-link:hover,
-.sheet-link:focus-visible {
-  background: var(--pdt-tostado);
-  color: var(--pdt-crema);
-  outline: none;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(158, 85, 40, 0.28);
-}
-
 .main {
   width: min(1140px, calc(100% - 2rem));
   margin: 0 auto 2rem;
@@ -124,11 +94,10 @@ p {
 }
 
 .module-card {
-  padding: 1.8rem;
+  padding: 1.6rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  min-height: 280px;
+  align-items: stretch;
+  min-height: 220px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -140,16 +109,27 @@ p {
     0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
-.module-card h2 {
-  font-size: 2.65rem;
-  letter-spacing: -0.03em;
-  color: var(--pdt-negro);
+.module-big-btn {
+  width: 100%;
+  min-height: 188px;
+  border: 1px solid rgba(192, 110, 50, 0.42);
+  border-radius: 18px;
+  background: linear-gradient(165deg, var(--pdt-tostado-claro), var(--pdt-tostado));
+  color: var(--pdt-vainilla);
+  font-size: clamp(2rem, 3vw, 3rem);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(158, 85, 40, 0.26);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.module-card p {
-  color: var(--pdt-texto-suave);
-  font-size: 1.02rem;
-  line-height: 1.35;
+.module-big-btn:hover,
+.module-big-btn:focus-visible {
+  background: linear-gradient(165deg, var(--pdt-tostado), var(--pdt-tostado-oscuro));
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(158, 85, 40, 0.34);
+  outline: none;
 }
 
 .section-head {
@@ -317,11 +297,12 @@ select:focus {
   }
 
   .module-card {
-    min-height: 230px;
+    min-height: 180px;
   }
 
-  .module-card h2 {
-    font-size: 2.1rem;
+  .module-big-btn {
+    min-height: 150px;
+    font-size: clamp(1.7rem, 8vw, 2.3rem);
   }
 
   .section-head {
