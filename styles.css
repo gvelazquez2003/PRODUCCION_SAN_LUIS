@@ -53,8 +53,8 @@ p {
 }
 
 .brand-corner__logo {
-  width: 72px;
-  height: 72px;
+  width: 86px;
+  height: 86px;
   border-radius: 999px;
   border: 1px solid rgba(192, 110, 50, 0.34);
   background: rgba(255, 253, 248, 0.9);
@@ -315,8 +315,8 @@ select:focus {
   }
 
   .brand-corner__logo {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
   }
 
   .modules-grid {
