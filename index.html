@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PRODUCCION SAN LUIS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <p class="eyebrow">Panel de formularios</p>
+      <h1>PRODUCCION SAN LUIS</h1>
+      <a
+        class="sheet-link"
+        href="https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs/edit?gid=919776879#gid=919776879"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Abrir Google Sheet
+      </a>
+    </header>
+
+    <main class="main">
+      <div id="env-warning" class="alert alert--warn hidden">
+        Configura la URL del Apps Script en index.html para habilitar guardado en Google Sheets.
+      </div>
+
+      <section class="view active" data-view="home">
+        <div class="modules-grid">
+          <article class="module-card">
+            <p class="eyebrow">Modulo 1</p>
+            <h2>RECETAS</h2>
+            <p>Registro principal con columnas: Marca Temporal, Fecha, Codigos, Productos, Receta y Responsable.</p>
+            <button class="btn" data-view-target="recetas">Abrir RECETAS</button>
+          </article>
+          <article class="module-card">
+            <p class="eyebrow">Modulo 2</p>
+            <h2>ENTREGADO</h2>
+            <p>Formulario listo para conectar cuando definas reglas y columnas finales del modulo entregado.</p>
+            <button class="btn btn--ghost" data-view-target="entregado">Abrir ENTREGADO</button>
+          </article>
+          <article class="module-card">
+            <p class="eyebrow">Modulo 3</p>
+            <h2>MERMA</h2>
+            <p>Formulario listo para conectar cuando definas reglas y columnas finales del modulo merma.</p>
+            <button class="btn btn--ghost" data-view-target="merma">Abrir MERMA</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" data-view="recetas">
+        <div class="section-head">
+          <h2>Formulario RECETAS</h2>
+          <div class="section-head__actions">
+            <button id="sync-catalogs" type="button" class="btn btn--ghost">Sincronizar catalogos</button>
+            <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+          </div>
+        </div>
+
+        <form id="recetas-form" class="card">
+          <div class="form-grid">
+            <label>
+              <span>Fecha</span>
+              <input type="date" name="fecha" required />
+            </label>
+
+            <label>
+              <span>Catalogo PRODUCTOS</span>
+              <select id="receta-producto-select" required>
+                <option value="" selected disabled>Selecciona producto</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Codigo (de PRODUCTOS)</span>
+              <input type="text" name="codigo" id="receta-codigo" readonly required />
+            </label>
+
+            <label>
+              <span>Producto (de PRODUCTOS)</span>
+              <input type="text" name="producto" id="receta-producto" readonly required />
+            </label>
+
+            <label>
+              <span>Receta (de RECETAS)</span>
+              <select name="receta" id="receta-nombre-select" required>
+                <option value="" selected disabled>Selecciona receta</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Responsable</span>
+              <input type="text" name="responsable" placeholder="Nombre y apellido" required />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn">Guardar registro</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="view" data-view="entregado">
+        <div class="placeholder card">
+          <h2>Modulo ENTREGADO</h2>
+          <p>Este modulo queda listo en estructura visual. Cuando me compartas las columnas exactas, te lo conecto al Sheet.</p>
+          <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+        </div>
+      </section>
+
+      <section class="view" data-view="merma">
+        <div class="placeholder card">
+          <h2>Modulo MERMA</h2>
+          <p>Este modulo queda listo en estructura visual. Cuando me compartas las columnas exactas, te lo conecto al Sheet.</p>
+          <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      window.APPS_SCRIPT_URL = '';
+    </script>
+    <script src="script.js" defer></script>
+  </body>
+</html>
