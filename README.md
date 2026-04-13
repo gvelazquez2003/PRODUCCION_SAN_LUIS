@@ -20,14 +20,14 @@ https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzM
 ## Paso a paso completo (frontend + Excel + Apps Script)
 
 1. Crear hojas dentro del mismo Spreadsheet:
-- REGISTROS
+- REGISTROS RECETAS
 - PRODUCTOS
 - RECETAS
 
 2. Configurar hoja PRODUCTOS:
 - Fila 1:
   - A1: CODIGO
-  - B1: PRODUCTO
+  - B1: DESCRIPCION
 - Desde A2/B2 en adelante: catalogo de productos.
 
 3. Configurar hoja RECETAS:
@@ -35,7 +35,7 @@ https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzM
   - A1: RECETA
 - Desde A2 en adelante: nombres de recetas.
 
-4. Configurar hoja REGISTROS (formato de la imagen):
+4. Configurar hoja REGISTROS RECETAS (formato de la imagen):
 - A1: Marca Temporal
 - B1: Fecha
 - C1: Codigos
@@ -67,7 +67,7 @@ https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzM
 - Entra a modulo RECETAS
 - Pulsa Sincronizar catalogos
 - Selecciona producto, receta, fecha y responsable
-- Guarda y valida fila nueva en REGISTROS
+- Guarda y valida fila nueva en REGISTROS RECETAS
 
 9. Despliegue en Vercel:
 - Importa esta carpeta como proyecto
@@ -75,5 +75,5 @@ https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzM
 - Publica
 
 ## Notas
-- El modulo RECETAS ya guarda en REGISTROS con columnas exactas.
+- El modulo RECETAS ya guarda en REGISTROS RECETAS con columnas exactas.
 - ENTREGADO y MERMA quedaron listos visualmente para que al pasarme columnas y reglas te los conecte igual.

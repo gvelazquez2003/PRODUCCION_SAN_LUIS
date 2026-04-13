@@ -1,6 +1,6 @@
 const CONFIG = {
   spreadsheetId: '1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs',
-  mainSheetName: 'REGISTROS',
+  mainSheetName: 'REGISTROS RECETAS',
   productsSheetName: 'PRODUCTOS',
   recetasSheetName: 'RECETAS',
   timeZone: Session.getScriptTimeZone() || 'America/Caracas',
@@ -49,7 +49,7 @@ function doPost(e) {
     switch (action) {
       case 'createreceta': {
         const result = createReceta_(payload);
-        return buildResponse_(true, result, 'Registro guardado en REGISTROS.');
+        return buildResponse_(true, result, 'Registro guardado en REGISTROS RECETAS.');
       }
       default:
         return buildResponse_(false, null, 'Accion POST no soportada.');
