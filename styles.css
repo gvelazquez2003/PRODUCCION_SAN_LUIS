@@ -44,6 +44,23 @@ p {
   color: var(--pdt-tostado);
 }
 
+.brand-corner {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.brand-corner__logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: 1px solid rgba(192, 110, 50, 0.34);
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 8px 18px rgba(62, 42, 22, 0.14);
+}
+
 .topbar {
   padding: 2.2rem 1.2rem 1rem;
   text-align: center;
@@ -292,6 +309,16 @@ select:focus {
 }
 
 @media (max-width: 960px) {
+  .brand-corner {
+    top: 10px;
+    left: 10px;
+  }
+
+  .brand-corner__logo {
+    width: 56px;
+    height: 56px;
+  }
+
   .modules-grid {
     grid-template-columns: 1fr;
   }
