@@ -17,6 +17,9 @@ Proyecto estatico para registrar PRODUCCION SAN LUIS con 3 modulos visuales:
 URL:
 https://docs.google.com/spreadsheets/d/1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs/edit?gid=919776879#gid=919776879
 
+## URL publica (Vercel)
+https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
+
 ## Paso a paso completo (frontend + Excel + Apps Script)
 
 1. Crear hojas dentro del mismo Spreadsheet:
