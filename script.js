@@ -6,6 +6,7 @@ const APPS_SCRIPT_URL = String(window.APPS_SCRIPT_URL || CURRENT_APPS_SCRIPT_URL
 const state = {
   products: [],
   recetas: [],
+  destinos: [],
 };
 
 const elements = {
@@ -13,11 +14,21 @@ const elements = {
   viewTriggers: () => document.querySelectorAll('[data-view-target]'),
   envWarning: document.getElementById('env-warning'),
   syncCatalogsBtn: document.getElementById('sync-catalogs'),
+  syncCatalogsEntregadoBtn: document.getElementById('sync-catalogs-entregado'),
+
   recetasForm: document.getElementById('recetas-form'),
   recetaProductoSelect: document.getElementById('receta-producto-select'),
   recetaCodigo: document.getElementById('receta-codigo'),
   recetaProducto: document.getElementById('receta-producto'),
   recetaNombreSelect: document.getElementById('receta-nombre-select'),
+
+  entregadoForm: document.getElementById('entregado-form'),
+  entregadoProductoSelect: document.getElementById('entregado-producto-select'),
+  entregadoCodigo: document.getElementById('entregado-codigo'),
+  entregadoProducto: document.getElementById('entregado-producto'),
+  entregadoUnidad: document.getElementById('entregado-unidad'),
+  entregadoDestinoSelect: document.getElementById('entregado-destino-select'),
+
   toast: document.getElementById('toast'),
 };
 
@@ -25,12 +36,18 @@ init();
 
 function init() {
   setupNavigation();
-  setupRecetasForm();
   setupCatalogSync();
+  setupRecetasForm();
+  setupEntregadoForm();
   toggleEnvWarning(!APPS_SCRIPT_URL);
+
   if (elements.recetasForm) {
     elements.recetasForm.dataset.requestId = createRequestId();
   }
+  if (elements.entregadoForm) {
+    elements.entregadoForm.dataset.requestId = createRequestId();
+  }
+
   fetchCatalogs();
 }
 
@@ -48,15 +65,26 @@ function setupNavigation() {
 
 function setupCatalogSync() {
   elements.syncCatalogsBtn?.addEventListener('click', () => fetchCatalogs(true));
+  elements.syncCatalogsEntregadoBtn?.addEventListener('click', () => fetchCatalogs(true));
 
   elements.recetaProductoSelect?.addEventListener('change', () => {
-    const selectedCode = elements.recetaProductoSelect.value;
+    const selectedCode = String(elements.recetaProductoSelect.value || '').trim();
     const product = state.products.find((item) => item.code === selectedCode);
     if (!product) {
-      setProductFields('', '');
+      setRecetaProductFields('', '');
       return;
     }
-    setProductFields(product.code, product.producto);
+    setRecetaProductFields(product.code, product.producto);
+  });
+
+  elements.entregadoProductoSelect?.addEventListener('change', () => {
+    const selectedCode = String(elements.entregadoProductoSelect.value || '').trim();
+    const product = state.products.find((item) => item.code === selectedCode);
+    if (!product) {
+      setEntregadoProductFields('', '', '');
+      return;
+    }
+    setEntregadoProductFields(product.code, product.producto, product.unidad);
   });
 }
 
@@ -86,16 +114,58 @@ function setupRecetasForm() {
 
     const submitBtn = form.querySelector('button[type="submit"]');
     try {
-      toggleLoading(submitBtn, true);
+      toggleLoading(submitBtn, true, 'Guardar registro');
       await postData('createReceta', payload);
-      showToast('Registro guardado correctamente.', 'success');
+      showToast('Registro de receta guardado correctamente.', 'success');
       form.reset();
-      setProductFields('', '');
+      setRecetaProductFields('', '');
       form.dataset.requestId = createRequestId();
     } catch (error) {
-      showToast(error.message || 'No se pudo guardar el registro.', 'error');
+      showToast(error.message || 'No se pudo guardar el registro de receta.', 'error');
     } finally {
-      toggleLoading(submitBtn, false);
+      toggleLoading(submitBtn, false, 'Guardar registro');
+    }
+  });
+}
+
+function setupEntregadoForm() {
+  const form = elements.entregadoForm;
+  if (!form) return;
+
+  form.addEventListener('input', () => {
+    form.dataset.requestId = createRequestId();
+  });
+
+  form.addEventListener('change', () => {
+    form.dataset.requestId = createRequestId();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+      return;
+    }
+
+    let payload;
+    try {
+      payload = collectEntregadoPayload(form);
+    } catch (error) {
+      showToast(error.message || 'Verifica los datos del formulario ENTREGADO.', 'error');
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    try {
+      toggleLoading(submitBtn, true, 'Guardar entregado');
+      await postData('createEntregado', payload);
+      showToast('Registro de entregado guardado correctamente.', 'success');
+      form.reset();
+      setEntregadoProductFields('', '', '');
+      form.dataset.requestId = createRequestId();
+    } catch (error) {
+      showToast(error.message || 'No se pudo guardar el registro ENTREGADO.', 'error');
+    } finally {
+      toggleLoading(submitBtn, false, 'Guardar entregado');
     }
   });
 }
@@ -116,6 +186,40 @@ function collectRecetaPayload(form) {
   };
 }
 
+function collectEntregadoPayload(form) {
+  const data = new FormData(form);
+  const codigo = String(data.get('codigo') || '').trim();
+  const producto = String(data.get('producto') || '').trim();
+  const unidad = String(data.get('unidad') || '').trim();
+  const destino = String(data.get('destino') || '').trim();
+  const responsable = String(data.get('responsable') || '').trim();
+  const fecha = String(data.get('fecha') || '').trim();
+  const cantidad = Number(data.get('cantidad'));
+
+  if (!codigo || !producto || !unidad) {
+    throw new Error('Selecciona un producto valido del catalogo PRODUCTOS.');
+  }
+
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+    throw new Error('La cantidad debe ser un numero entero mayor a cero.');
+  }
+
+  if (!destino) {
+    throw new Error('Selecciona un destino valido.');
+  }
+
+  return {
+    fecha,
+    codigo,
+    producto,
+    unidad,
+    cantidad,
+    destino,
+    responsable,
+    requestId: getOrCreateRequestId(form),
+  };
+}
+
 function getOrCreateRequestId(form) {
   if (!form.dataset.requestId) {
     form.dataset.requestId = createRequestId();
@@ -130,9 +234,15 @@ function createRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function setProductFields(code, productName) {
+function setRecetaProductFields(code, productName) {
   if (elements.recetaCodigo) elements.recetaCodigo.value = code;
   if (elements.recetaProducto) elements.recetaProducto.value = productName;
+}
+
+function setEntregadoProductFields(code, productName, unidad) {
+  if (elements.entregadoCodigo) elements.entregadoCodigo.value = code;
+  if (elements.entregadoProducto) elements.entregadoProducto.value = productName;
+  if (elements.entregadoUnidad) elements.entregadoUnidad.value = unidad;
 }
 
 async function fetchCatalogs(showToastOnSuccess = false) {
@@ -149,12 +259,15 @@ async function fetchCatalogs(showToastOnSuccess = false) {
 
     const products = Array.isArray(data?.data?.products) ? data.data.products : [];
     const recetas = Array.isArray(data?.data?.recetas) ? data.data.recetas : [];
+    const destinos = Array.isArray(data?.data?.destinos) ? data.data.destinos : [];
 
     state.products = products;
     state.recetas = recetas;
+    state.destinos = destinos;
 
     renderProductOptions();
     renderRecetaOptions();
+    renderDestinoOptions();
 
     if (showToastOnSuccess) {
       showToast('Catalogos sincronizados.', 'success');
@@ -166,14 +279,20 @@ async function fetchCatalogs(showToastOnSuccess = false) {
 }
 
 function renderProductOptions() {
-  if (!elements.recetaProductoSelect) return;
-  const options = [
+  const optionRows = state.products.map(
+    (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
+  );
+
+  renderProductSelect(elements.recetaProductoSelect, optionRows);
+  renderProductSelect(elements.entregadoProductoSelect, optionRows);
+}
+
+function renderProductSelect(select, optionRows) {
+  if (!select) return;
+  select.innerHTML = [
     '<option value="" selected disabled>Selecciona producto</option>',
-    ...state.products.map(
-      (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
-    ),
-  ];
-  elements.recetaProductoSelect.innerHTML = options.join('');
+    ...optionRows,
+  ].join('');
 }
 
 function renderRecetaOptions() {
@@ -183,6 +302,15 @@ function renderRecetaOptions() {
     ...state.recetas.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
   ];
   elements.recetaNombreSelect.innerHTML = options.join('');
+}
+
+function renderDestinoOptions() {
+  if (!elements.entregadoDestinoSelect) return;
+  const options = [
+    '<option value="" selected disabled>Selecciona destino</option>',
+    ...state.destinos.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
+  ];
+  elements.entregadoDestinoSelect.innerHTML = options.join('');
 }
 
 async function postData(action, payload) {
@@ -225,10 +353,10 @@ function normalizeNetworkError(error) {
   return error instanceof Error ? error : new Error('Error de red desconocido.');
 }
 
-function toggleLoading(button, loading) {
+function toggleLoading(button, loading, idleText) {
   if (!button) return;
   button.disabled = loading;
-  button.textContent = loading ? 'Guardando...' : 'Guardar registro';
+  button.textContent = loading ? 'Guardando...' : String(idleText || 'Guardar');
 }
 
 function toggleEnvWarning(show) {

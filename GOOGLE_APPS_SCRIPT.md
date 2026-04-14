@@ -10,6 +10,8 @@
 - REGISTROS RECETAS
 - PRODUCTOS
 - RECETAS
+- DESTINO
+- ENTREGADO
 
 ## Mapeo de columnas en REGISTROS RECETAS
 - Marca Temporal
@@ -20,10 +22,22 @@
 - Receta
 - Responsable
 
+## Mapeo de columnas en ENTREGADO
+- Marca Temporal
+- Fecha
+- Codigos
+- Productos
+- Unidad
+- Cantidad
+- Destino
+- Responsable
+
 ## Catalogos
 - PRODUCTOS: columna A = codigo, columna B = descripcion, columna C = UM.
 - RECETAS: columna A = nombre de receta.
+- DESTINO: columna A = nombre de destino.
 
 ## Endpoint disponibles
 - GET ?action=getCatalogs
 - POST action=createReceta
+- POST action=createEntregado

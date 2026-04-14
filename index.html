@@ -87,11 +87,53 @@
       </section>
 
       <section class="view" data-view="entregado">
-        <div class="placeholder card">
-          <h2>Modulo ENTREGADO</h2>
-          <p>Este modulo queda listo en estructura visual. Cuando me compartas las columnas exactas, te lo conecto al Sheet.</p>
-          <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+        <div class="section-head">
+          <h2>Formulario ENTREGADO</h2>
+          <div class="section-head__actions">
+            <button id="sync-catalogs-entregado" type="button" class="btn btn--ghost">Sincronizar catalogos</button>
+            <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+          </div>
         </div>
+
+        <form id="entregado-form" class="card">
+          <div class="form-grid">
+            <label>
+              <span>Fecha</span>
+              <input type="date" name="fecha" required />
+            </label>
+
+            <label>
+              <span>Catalogo PRODUCTOS</span>
+              <select id="entregado-producto-select" required>
+                <option value="" selected disabled>Selecciona producto</option>
+              </select>
+            </label>
+            <input type="hidden" name="codigo" id="entregado-codigo" required />
+            <input type="hidden" name="producto" id="entregado-producto" required />
+            <input type="hidden" name="unidad" id="entregado-unidad" required />
+
+            <label>
+              <span>Cantidad</span>
+              <input type="number" name="cantidad" min="1" step="1" required />
+            </label>
+
+            <label>
+              <span>Destino</span>
+              <select name="destino" id="entregado-destino-select" required>
+                <option value="" selected disabled>Selecciona destino</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Responsable</span>
+              <input type="text" name="responsable" placeholder="Nombre y apellido" required />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn">Guardar entregado</button>
+          </div>
+        </form>
       </section>
 
       <section class="view" data-view="merma">

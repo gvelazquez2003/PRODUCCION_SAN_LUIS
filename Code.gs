@@ -1,8 +1,10 @@
 const CONFIG = {
   spreadsheetId: '1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs',
   mainSheetName: 'REGISTROS RECETAS',
+  entregadoSheetName: 'ENTREGADO',
   productsSheetName: 'PRODUCTOS',
   recetasSheetName: 'RECETAS',
+  destinoSheetName: 'DESTINO',
   timeZone: Session.getScriptTimeZone() || 'America/Caracas',
   columns: {
     timestamp: 1,
@@ -22,7 +24,8 @@ function doGet(e) {
     if (action === 'getcatalogs') {
       const products = getProducts_();
       const recetas = getRecetas_();
-      return buildResponse_(true, { products, recetas }, 'Catalogos sincronizados.');
+      const destinos = getDestinos_();
+      return buildResponse_(true, { products, recetas, destinos }, 'Catalogos sincronizados.');
     }
 
     if (!action || action === 'ping') {
@@ -51,6 +54,10 @@ function doPost(e) {
       case 'createreceta': {
         const result = createReceta_(payload);
         return buildResponse_(true, result, 'Registro guardado en REGISTROS RECETAS.');
+      }
+      case 'createentregado': {
+        const result = createEntregado_(payload);
+        return buildResponse_(true, result, 'Registro guardado en ENTREGADO.');
       }
       default:
         return buildResponse_(false, null, 'Accion POST no soportada.');
@@ -98,6 +105,45 @@ function createReceta_(payload) {
   return { rowInserted: sheet.getLastRow() };
 }
 
+function createEntregado_(payload) {
+  validateRequired_(payload, ['fecha', 'codigo', 'producto', 'unidad', 'destino', 'responsable']);
+
+  const cantidad = Number(payload.cantidad);
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+    throw new Error('La cantidad debe ser un numero entero mayor a cero.');
+  }
+
+  const productsByCode = getProductsByCode_();
+  const normalizedCode = normalizeText_(payload.codigo);
+  const product = productsByCode[normalizedCode];
+  if (!product) {
+    throw new Error('El codigo no existe en la hoja PRODUCTOS.');
+  }
+
+  const destinoRaw = String(payload.destino || '').trim();
+  const destinos = getDestinos_();
+  const destino = destinos.find((name) => normalizeText_(name) === normalizeText_(destinoRaw));
+  if (!destino) {
+    throw new Error('El destino seleccionado no existe en la hoja DESTINO.');
+  }
+
+  const sheet = getOrCreateEntregadoSheet_();
+  const timestamp = new Date();
+  const row = [
+    timestamp,
+    String(payload.fecha || '').trim(),
+    product.code,
+    product.producto,
+    product.unidad,
+    cantidad,
+    destino,
+    String(payload.responsable || '').trim(),
+  ];
+
+  sheet.appendRow(row);
+  return { rowInserted: sheet.getLastRow() };
+}
+
 function getProducts_() {
   const sheet = getSpreadsheet_().getSheetByName(CONFIG.productsSheetName);
   if (!sheet) {
@@ -137,6 +183,28 @@ function getRecetas_() {
     .filter((name) => Boolean(name));
 }
 
+function getDestinos_() {
+  const sheet = getSpreadsheet_().getSheetByName(CONFIG.destinoSheetName);
+  if (!sheet) {
+    throw new Error('No se encontro la hoja DESTINO.');
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const rows = values.slice(1);
+
+  const unique = new Map();
+  rows.forEach((row) => {
+    const name = String(row[0] || '').trim();
+    if (!name) return;
+    const key = normalizeText_(name);
+    if (!unique.has(key)) {
+      unique.set(key, name);
+    }
+  });
+
+  return Array.from(unique.values());
+}
+
 function parseBody_(e) {
   if (!e?.postData?.contents) {
     throw new Error('Cuerpo POST vacio.');
@@ -157,6 +225,18 @@ function getOrCreateMainSheet_() {
   }
 
   ensureMainSheetLayout_(sheet);
+  return sheet;
+}
+
+function getOrCreateEntregadoSheet_() {
+  const ss = getSpreadsheet_();
+  let sheet = ss.getSheetByName(CONFIG.entregadoSheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.entregadoSheetName);
+  }
+
+  ensureEntregadoSheetLayout_(sheet);
   return sheet;
 }
 
@@ -214,6 +294,30 @@ function migrateOldRecetasLayout_(sheet) {
   const oldRecetaResponsable = sheet.getRange(2, 5, totalRows, 2).getValues();
   const migrated = oldRecetaResponsable.map((row) => ['', row[0], row[1]]);
   sheet.getRange(2, 5, totalRows, 3).setValues(migrated);
+}
+
+function ensureEntregadoSheetLayout_(sheet) {
+  const headers = [
+    'Marca Temporal',
+    'Fecha',
+    'Codigos',
+    'Productos',
+    'Unidad',
+    'Cantidad',
+    'Destino',
+    'Responsable',
+  ];
+
+  const range = sheet.getRange(1, 1, 1, headers.length);
+  const current = range.getValues()[0];
+  const needsUpdate = headers.some((header, index) => String(current[index] || '').trim() !== header);
+
+  if (needsUpdate) {
+    range.setValues([headers]);
+    range.setFontWeight('bold');
+  }
+
+  sheet.setFrozenRows(1);
 }
 
 function validateRequired_(payload, fields) {
