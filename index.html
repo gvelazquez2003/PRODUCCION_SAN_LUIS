@@ -59,25 +59,47 @@
             </label>
 
             <label>
-              <span>Catalogo PRODUCTOS</span>
-              <select id="receta-producto-select" required>
-                <option value="" selected disabled>Selecciona producto</option>
-              </select>
-            </label>
-            <input type="hidden" name="codigo" id="receta-codigo" required />
-            <input type="hidden" name="producto" id="receta-producto" required />
-
-            <label>
-              <span>Receta (de RECETAS)</span>
-              <select name="receta" id="receta-nombre-select" required>
-                <option value="" selected disabled>Selecciona receta</option>
-              </select>
-            </label>
-
-            <label>
               <span>Responsable</span>
               <input type="text" name="responsable" placeholder="Nombre y apellido" required />
             </label>
+          </div>
+
+          <div class="items-card">
+            <h3>Agregar productos al envio</h3>
+            <div class="line-grid">
+              <label>
+                <span>Producto</span>
+                <select id="receta-item-producto-select">
+                  <option value="" selected disabled>Selecciona producto</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Receta (de RECETAS)</span>
+                <select id="receta-item-receta-select">
+                  <option value="" selected disabled>Selecciona receta</option>
+                </select>
+              </label>
+
+              <button id="add-receta-item" type="button" class="btn btn--ghost line-grid__button">Agregar producto</button>
+            </div>
+
+            <p id="recetas-items-empty" class="items-empty">Todavia no agregaste productos al envio.</p>
+
+            <div class="items-table-wrap hidden" id="recetas-items-wrap">
+              <table class="items-table" id="recetas-items-table">
+                <thead>
+                  <tr>
+                    <th>Codigo</th>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Receta</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recetas-items-body"></tbody>
+              </table>
+            </div>
           </div>
 
           <div class="form-actions">
@@ -103,31 +125,53 @@
             </label>
 
             <label>
-              <span>Catalogo PRODUCTOS</span>
-              <select id="entregado-producto-select" required>
-                <option value="" selected disabled>Selecciona producto</option>
-              </select>
-            </label>
-            <input type="hidden" name="codigo" id="entregado-codigo" required />
-            <input type="hidden" name="producto" id="entregado-producto" required />
-            <input type="hidden" name="unidad" id="entregado-unidad" required />
-
-            <label>
-              <span>Cantidad</span>
-              <input type="number" name="cantidad" min="1" step="1" required />
-            </label>
-
-            <label>
-              <span>Destino</span>
-              <select name="destino" id="entregado-destino-select" required>
-                <option value="" selected disabled>Selecciona destino</option>
-              </select>
-            </label>
-
-            <label>
               <span>Responsable</span>
               <input type="text" name="responsable" placeholder="Nombre y apellido" required />
             </label>
+          </div>
+
+          <div class="items-card">
+            <h3>Agregar productos al envio</h3>
+            <div class="line-grid line-grid--entregado">
+              <label>
+                <span>Producto</span>
+                <select id="entregado-item-producto-select">
+                  <option value="" selected disabled>Selecciona producto</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Cantidad</span>
+                <input id="entregado-item-cantidad" type="number" min="1" step="1" placeholder="0" />
+              </label>
+
+              <label>
+                <span>Destino</span>
+                <select id="entregado-item-destino-select">
+                  <option value="" selected disabled>Selecciona destino</option>
+                </select>
+              </label>
+
+              <button id="add-entregado-item" type="button" class="btn btn--ghost line-grid__button">Agregar producto</button>
+            </div>
+
+            <p id="entregado-items-empty" class="items-empty">Todavia no agregaste productos al envio.</p>
+
+            <div class="items-table-wrap hidden" id="entregado-items-wrap">
+              <table class="items-table" id="entregado-items-table">
+                <thead>
+                  <tr>
+                    <th>Codigo</th>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>Destino</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="entregado-items-body"></tbody>
+              </table>
+            </div>
           </div>
 
           <div class="form-actions">

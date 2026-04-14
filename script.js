@@ -7,6 +7,8 @@ const state = {
   products: [],
   recetas: [],
   destinos: [],
+  recetaItems: [],
+  entregadoItems: [],
 };
 
 const elements = {
@@ -17,17 +19,23 @@ const elements = {
   syncCatalogsEntregadoBtn: document.getElementById('sync-catalogs-entregado'),
 
   recetasForm: document.getElementById('recetas-form'),
-  recetaProductoSelect: document.getElementById('receta-producto-select'),
-  recetaCodigo: document.getElementById('receta-codigo'),
-  recetaProducto: document.getElementById('receta-producto'),
-  recetaNombreSelect: document.getElementById('receta-nombre-select'),
+  recetaItemProductoSelect: document.getElementById('receta-item-producto-select'),
+  recetaItemRecetaSelect: document.getElementById('receta-item-receta-select'),
+  addRecetaItemBtn: document.getElementById('add-receta-item'),
+  recetasItemsBody: document.getElementById('recetas-items-body'),
+  recetasItemsWrap: document.getElementById('recetas-items-wrap'),
+  recetasItemsEmpty: document.getElementById('recetas-items-empty'),
+  recetasItemsTable: document.getElementById('recetas-items-table'),
 
   entregadoForm: document.getElementById('entregado-form'),
-  entregadoProductoSelect: document.getElementById('entregado-producto-select'),
-  entregadoCodigo: document.getElementById('entregado-codigo'),
-  entregadoProducto: document.getElementById('entregado-producto'),
-  entregadoUnidad: document.getElementById('entregado-unidad'),
-  entregadoDestinoSelect: document.getElementById('entregado-destino-select'),
+  entregadoItemProductoSelect: document.getElementById('entregado-item-producto-select'),
+  entregadoItemCantidad: document.getElementById('entregado-item-cantidad'),
+  entregadoItemDestinoSelect: document.getElementById('entregado-item-destino-select'),
+  addEntregadoItemBtn: document.getElementById('add-entregado-item'),
+  entregadoItemsBody: document.getElementById('entregado-items-body'),
+  entregadoItemsWrap: document.getElementById('entregado-items-wrap'),
+  entregadoItemsEmpty: document.getElementById('entregado-items-empty'),
+  entregadoItemsTable: document.getElementById('entregado-items-table'),
 
   toast: document.getElementById('toast'),
 };
@@ -66,31 +74,22 @@ function setupNavigation() {
 function setupCatalogSync() {
   elements.syncCatalogsBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsEntregadoBtn?.addEventListener('click', () => fetchCatalogs(true));
-
-  elements.recetaProductoSelect?.addEventListener('change', () => {
-    const selectedCode = String(elements.recetaProductoSelect.value || '').trim();
-    const product = state.products.find((item) => item.code === selectedCode);
-    if (!product) {
-      setRecetaProductFields('', '');
-      return;
-    }
-    setRecetaProductFields(product.code, product.producto);
-  });
-
-  elements.entregadoProductoSelect?.addEventListener('change', () => {
-    const selectedCode = String(elements.entregadoProductoSelect.value || '').trim();
-    const product = state.products.find((item) => item.code === selectedCode);
-    if (!product) {
-      setEntregadoProductFields('', '', '');
-      return;
-    }
-    setEntregadoProductFields(product.code, product.producto, product.unidad);
-  });
 }
 
 function setupRecetasForm() {
   const form = elements.recetasForm;
   if (!form) return;
+
+  elements.addRecetaItemBtn?.addEventListener('click', addRecetaItem);
+
+  elements.recetasItemsTable?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove-receta-item]');
+    if (!button) return;
+    const itemId = String(button.dataset.removeRecetaItem || '');
+    if (!itemId) return;
+    state.recetaItems = state.recetaItems.filter((item) => item.id !== itemId);
+    renderRecetaItems();
+  });
 
   form.addEventListener('input', () => {
     form.dataset.requestId = createRequestId();
@@ -106,19 +105,20 @@ function setupRecetasForm() {
       return;
     }
 
-    const payload = collectRecetaPayload(form);
-    if (!payload) {
-      showToast('Selecciona un producto valido del catalogo.', 'error');
+    if (!state.recetaItems.length) {
+      showToast('Agrega al menos un producto para RECETAS.', 'error');
       return;
     }
+
+    const payload = collectRecetaPayload(form);
 
     const submitBtn = form.querySelector('button[type="submit"]');
     try {
       toggleLoading(submitBtn, true, 'Guardar registro');
       await postData('createReceta', payload);
       showToast('Registro de receta guardado correctamente.', 'success');
-      form.reset();
-      setRecetaProductFields('', '');
+      clearRecetaItems();
+      resetRecetaLineInputs();
       form.dataset.requestId = createRequestId();
     } catch (error) {
       showToast(error.message || 'No se pudo guardar el registro de receta.', 'error');
@@ -132,6 +132,17 @@ function setupEntregadoForm() {
   const form = elements.entregadoForm;
   if (!form) return;
 
+  elements.addEntregadoItemBtn?.addEventListener('click', addEntregadoItem);
+
+  elements.entregadoItemsTable?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove-entregado-item]');
+    if (!button) return;
+    const itemId = String(button.dataset.removeEntregadoItem || '');
+    if (!itemId) return;
+    state.entregadoItems = state.entregadoItems.filter((item) => item.id !== itemId);
+    renderEntregadoItems();
+  });
+
   form.addEventListener('input', () => {
     form.dataset.requestId = createRequestId();
   });
@@ -143,6 +154,11 @@ function setupEntregadoForm() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+      return;
+    }
+
+    if (!state.entregadoItems.length) {
+      showToast('Agrega al menos un producto para ENTREGADO.', 'error');
       return;
     }
 
@@ -159,8 +175,8 @@ function setupEntregadoForm() {
       toggleLoading(submitBtn, true, 'Guardar entregado');
       await postData('createEntregado', payload);
       showToast('Registro de entregado guardado correctamente.', 'success');
-      form.reset();
-      setEntregadoProductFields('', '', '');
+      clearEntregadoItems();
+      resetEntregadoLineInputs();
       form.dataset.requestId = createRequestId();
     } catch (error) {
       showToast(error.message || 'No se pudo guardar el registro ENTREGADO.', 'error');
@@ -172,52 +188,172 @@ function setupEntregadoForm() {
 
 function collectRecetaPayload(form) {
   const data = new FormData(form);
-  const code = String(data.get('codigo') || '').trim();
-  const producto = String(data.get('producto') || '').trim();
-  if (!code || !producto) return null;
-
   return {
     fecha: String(data.get('fecha') || '').trim(),
-    codigo: code,
-    producto,
-    receta: String(data.get('receta') || '').trim(),
     responsable: String(data.get('responsable') || '').trim(),
+    items: state.recetaItems.map((item) => ({
+      codigo: item.codigo,
+      receta: item.receta,
+    })),
     requestId: getOrCreateRequestId(form),
   };
 }
 
 function collectEntregadoPayload(form) {
   const data = new FormData(form);
-  const codigo = String(data.get('codigo') || '').trim();
-  const producto = String(data.get('producto') || '').trim();
-  const unidad = String(data.get('unidad') || '').trim();
-  const destino = String(data.get('destino') || '').trim();
   const responsable = String(data.get('responsable') || '').trim();
   const fecha = String(data.get('fecha') || '').trim();
-  const cantidad = Number(data.get('cantidad'));
-
-  if (!codigo || !producto || !unidad) {
-    throw new Error('Selecciona un producto valido del catalogo PRODUCTOS.');
-  }
-
-  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
-    throw new Error('La cantidad debe ser un numero entero mayor a cero.');
-  }
-
-  if (!destino) {
-    throw new Error('Selecciona un destino valido.');
-  }
 
   return {
     fecha,
-    codigo,
-    producto,
-    unidad,
-    cantidad,
-    destino,
     responsable,
+    items: state.entregadoItems.map((item) => ({
+      codigo: item.codigo,
+      cantidad: item.cantidad,
+      destino: item.destino,
+    })),
     requestId: getOrCreateRequestId(form),
   };
+}
+
+function addRecetaItem() {
+  const code = String(elements.recetaItemProductoSelect?.value || '').trim();
+  const receta = String(elements.recetaItemRecetaSelect?.value || '').trim();
+
+  if (!code) {
+    showToast('Selecciona un producto para agregar.', 'error');
+    return;
+  }
+  if (!receta) {
+    showToast('Selecciona una receta para el producto.', 'error');
+    return;
+  }
+
+  const product = state.products.find((item) => item.code === code);
+  if (!product) {
+    showToast('Producto no encontrado en catalogo.', 'error');
+    return;
+  }
+
+  state.recetaItems.push({
+    id: createLineItemId(),
+    codigo: product.code,
+    producto: product.producto,
+    unidad: product.unidad,
+    receta,
+  });
+
+  renderRecetaItems();
+  resetRecetaLineInputs();
+}
+
+function addEntregadoItem() {
+  const code = String(elements.entregadoItemProductoSelect?.value || '').trim();
+  const cantidad = Number(elements.entregadoItemCantidad?.value || '');
+  const destino = String(elements.entregadoItemDestinoSelect?.value || '').trim();
+
+  if (!code) {
+    showToast('Selecciona un producto para agregar.', 'error');
+    return;
+  }
+
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+    showToast('La cantidad debe ser un numero entero mayor a cero.', 'error');
+    return;
+  }
+
+  if (!destino) {
+    showToast('Selecciona un destino valido.', 'error');
+    return;
+  }
+
+  const product = state.products.find((item) => item.code === code);
+  if (!product) {
+    showToast('Producto no encontrado en catalogo.', 'error');
+    return;
+  }
+
+  state.entregadoItems.push({
+    id: createLineItemId(),
+    codigo: product.code,
+    producto: product.producto,
+    unidad: product.unidad,
+    cantidad,
+    destino,
+  });
+
+  renderEntregadoItems();
+  resetEntregadoLineInputs();
+}
+
+function renderRecetaItems() {
+  if (!elements.recetasItemsBody || !elements.recetasItemsWrap || !elements.recetasItemsEmpty) return;
+
+  if (!state.recetaItems.length) {
+    elements.recetasItemsBody.innerHTML = '';
+    elements.recetasItemsWrap.classList.add('hidden');
+    elements.recetasItemsEmpty.classList.remove('hidden');
+    return;
+  }
+
+  elements.recetasItemsBody.innerHTML = state.recetaItems.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.codigo)}</td>
+      <td>${escapeHtml(item.producto)}</td>
+      <td>${escapeHtml(item.unidad)}</td>
+      <td>${escapeHtml(item.receta)}</td>
+      <td><button type="button" class="btn btn--ghost btn--small" data-remove-receta-item="${escapeHtml(item.id)}">Quitar</button></td>
+    </tr>
+  `).join('');
+
+  elements.recetasItemsWrap.classList.remove('hidden');
+  elements.recetasItemsEmpty.classList.add('hidden');
+}
+
+function renderEntregadoItems() {
+  if (!elements.entregadoItemsBody || !elements.entregadoItemsWrap || !elements.entregadoItemsEmpty) return;
+
+  if (!state.entregadoItems.length) {
+    elements.entregadoItemsBody.innerHTML = '';
+    elements.entregadoItemsWrap.classList.add('hidden');
+    elements.entregadoItemsEmpty.classList.remove('hidden');
+    return;
+  }
+
+  elements.entregadoItemsBody.innerHTML = state.entregadoItems.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.codigo)}</td>
+      <td>${escapeHtml(item.producto)}</td>
+      <td>${escapeHtml(item.unidad)}</td>
+      <td>${escapeHtml(item.cantidad)}</td>
+      <td>${escapeHtml(item.destino)}</td>
+      <td><button type="button" class="btn btn--ghost btn--small" data-remove-entregado-item="${escapeHtml(item.id)}">Quitar</button></td>
+    </tr>
+  `).join('');
+
+  elements.entregadoItemsWrap.classList.remove('hidden');
+  elements.entregadoItemsEmpty.classList.add('hidden');
+}
+
+function clearRecetaItems() {
+  state.recetaItems = [];
+  renderRecetaItems();
+}
+
+function clearEntregadoItems() {
+  state.entregadoItems = [];
+  renderEntregadoItems();
+}
+
+function resetRecetaLineInputs() {
+  if (elements.recetaItemProductoSelect) elements.recetaItemProductoSelect.selectedIndex = 0;
+  if (elements.recetaItemRecetaSelect) elements.recetaItemRecetaSelect.selectedIndex = 0;
+}
+
+function resetEntregadoLineInputs() {
+  if (elements.entregadoItemProductoSelect) elements.entregadoItemProductoSelect.selectedIndex = 0;
+  if (elements.entregadoItemCantidad) elements.entregadoItemCantidad.value = '';
+  if (elements.entregadoItemDestinoSelect) elements.entregadoItemDestinoSelect.selectedIndex = 0;
 }
 
 function getOrCreateRequestId(form) {
@@ -234,15 +370,8 @@ function createRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function setRecetaProductFields(code, productName) {
-  if (elements.recetaCodigo) elements.recetaCodigo.value = code;
-  if (elements.recetaProducto) elements.recetaProducto.value = productName;
-}
-
-function setEntregadoProductFields(code, productName, unidad) {
-  if (elements.entregadoCodigo) elements.entregadoCodigo.value = code;
-  if (elements.entregadoProducto) elements.entregadoProducto.value = productName;
-  if (elements.entregadoUnidad) elements.entregadoUnidad.value = unidad;
+function createLineItemId() {
+  return `itm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 async function fetchCatalogs(showToastOnSuccess = false) {
@@ -283,8 +412,8 @@ function renderProductOptions() {
     (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
   );
 
-  renderProductSelect(elements.recetaProductoSelect, optionRows);
-  renderProductSelect(elements.entregadoProductoSelect, optionRows);
+  renderProductSelect(elements.recetaItemProductoSelect, optionRows);
+  renderProductSelect(elements.entregadoItemProductoSelect, optionRows);
 }
 
 function renderProductSelect(select, optionRows) {
@@ -296,21 +425,21 @@ function renderProductSelect(select, optionRows) {
 }
 
 function renderRecetaOptions() {
-  if (!elements.recetaNombreSelect) return;
+  if (!elements.recetaItemRecetaSelect) return;
   const options = [
     '<option value="" selected disabled>Selecciona receta</option>',
     ...state.recetas.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
   ];
-  elements.recetaNombreSelect.innerHTML = options.join('');
+  elements.recetaItemRecetaSelect.innerHTML = options.join('');
 }
 
 function renderDestinoOptions() {
-  if (!elements.entregadoDestinoSelect) return;
+  if (!elements.entregadoItemDestinoSelect) return;
   const options = [
     '<option value="" selected disabled>Selecciona destino</option>',
     ...state.destinos.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
   ];
-  elements.entregadoDestinoSelect.innerHTML = options.join('');
+  elements.entregadoItemDestinoSelect.innerHTML = options.join('');
 }
 
 async function postData(action, payload) {

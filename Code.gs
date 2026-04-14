@@ -73,75 +73,105 @@ function doPost(e) {
 }
 
 function createReceta_(payload) {
-  validateRequired_(payload, ['fecha', 'codigo', 'producto', 'receta', 'responsable']);
+  validateRequired_(payload, ['fecha', 'responsable']);
+
+  const items = normalizeRecetaItems_(payload);
+  if (!items.length) {
+    throw new Error('Debes enviar al menos un producto en RECETAS.');
+  }
 
   const productsByCode = getProductsByCode_();
-  const normalizedCode = normalizeText_(payload.codigo);
-  const product = productsByCode[normalizedCode];
-
-  if (!product) {
-    throw new Error('El codigo no existe en la hoja PRODUCTOS.');
-  }
-
   const recetaNames = getRecetas_();
-  const recetaExists = recetaNames.some((name) => normalizeText_(name) === normalizeText_(payload.receta));
-  if (!recetaExists) {
-    throw new Error('La receta seleccionada no existe en la hoja RECETAS.');
-  }
+  const recetaMap = recetaNames.reduce((acc, name) => {
+    acc[normalizeText_(name)] = name;
+    return acc;
+  }, {});
 
   const sheet = getOrCreateMainSheet_();
   const timestamp = buildLocalTimestamp_();
-  const row = [
-    timestamp,
-    payload.fecha,
-    product.code,
-    product.producto,
-    product.unidad,
-    String(payload.receta || '').trim(),
-    String(payload.responsable || '').trim(),
-  ];
+  const fecha = String(payload.fecha || '').trim();
+  const responsable = String(payload.responsable || '').trim();
 
-  sheet.appendRow(row);
-  return { rowInserted: sheet.getLastRow() };
+  const rows = items.map((item, index) => {
+    validateRequired_(item, ['codigo', 'receta']);
+
+    const product = productsByCode[normalizeText_(item.codigo)];
+    if (!product) {
+      throw new Error(`El codigo del item ${index + 1} no existe en la hoja PRODUCTOS.`);
+    }
+
+    const receta = recetaMap[normalizeText_(item.receta)];
+    if (!receta) {
+      throw new Error(`La receta del item ${index + 1} no existe en la hoja RECETAS.`);
+    }
+
+    return [
+      timestamp,
+      fecha,
+      product.code,
+      product.producto,
+      product.unidad,
+      receta,
+      responsable,
+    ];
+  });
+
+  const lastRow = batchAppendRows_(sheet, rows);
+  return { rowInserted: lastRow, rowsInserted: rows.length };
 }
 
 function createEntregado_(payload) {
-  validateRequired_(payload, ['fecha', 'codigo', 'producto', 'unidad', 'destino', 'responsable']);
+  validateRequired_(payload, ['fecha', 'responsable']);
 
-  const cantidad = Number(payload.cantidad);
-  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
-    throw new Error('La cantidad debe ser un numero entero mayor a cero.');
+  const items = normalizeEntregadoItems_(payload);
+  if (!items.length) {
+    throw new Error('Debes enviar al menos un producto en ENTREGADO.');
   }
 
   const productsByCode = getProductsByCode_();
-  const normalizedCode = normalizeText_(payload.codigo);
-  const product = productsByCode[normalizedCode];
-  if (!product) {
-    throw new Error('El codigo no existe en la hoja PRODUCTOS.');
-  }
-
-  const destinoRaw = String(payload.destino || '').trim();
   const destinos = getDestinos_();
-  const destino = destinos.find((name) => normalizeText_(name) === normalizeText_(destinoRaw));
-  if (!destino) {
-    throw new Error('El destino seleccionado no existe en la hoja DESTINO.');
-  }
+  const destinoMap = destinos.reduce((acc, name) => {
+    acc[normalizeText_(name)] = name;
+    return acc;
+  }, {});
 
   const sheet = getOrCreateEntregadoSheet_();
   const timestamp = buildLocalTimestamp_();
-  const row = [
-    timestamp,
-    String(payload.fecha || '').trim(),
-    product.code,
-    product.producto,
-    product.unidad,
-    cantidad,
-    destino,
-    String(payload.responsable || '').trim(),
-  ];
+  const fecha = String(payload.fecha || '').trim();
+  const responsable = String(payload.responsable || '').trim();
 
-  sheet.appendRow(row);
-  return { rowInserted: sheet.getLastRow() };
+  const rows = items.map((item, index) => {
+    validateRequired_(item, ['codigo', 'destino', 'cantidad']);
+
+    const product = productsByCode[normalizeText_(item.codigo)];
+    if (!product) {
+      throw new Error(`El codigo del item ${index + 1} no existe en la hoja PRODUCTOS.`);
+    }
+
+    const cantidad = Number(item.cantidad);
+    if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+      throw new Error(`La cantidad del item ${index + 1} debe ser un numero entero mayor a cero.`);
+    }
+
+    const destino = destinoMap[normalizeText_(item.destino)];
+    if (!destino) {
+      throw new Error(`El destino del item ${index + 1} no existe en la hoja DESTINO.`);
+    }
+
+    return [
+      timestamp,
+      fecha,
+      product.code,
+      product.producto,
+      product.unidad,
+      cantidad,
+      destino,
+      responsable,
+    ];
+  });
+
+  const lastRow = batchAppendRows_(sheet, rows);
+  return { rowInserted: lastRow, rowsInserted: rows.length };
 }
 
 function getProducts_() {
@@ -338,6 +368,56 @@ function normalizeText_(value) {
 
 function normalizeErrorMessage_(error) {
   return String(error && error.message ? error.message : error || 'Error interno de Apps Script.');
+}
+
+function normalizeRecetaItems_(payload) {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if (items.length) {
+    return items.map((item) => ({
+      codigo: String(item?.codigo || '').trim(),
+      receta: String(item?.receta || '').trim(),
+    }));
+  }
+
+  if (payload.codigo || payload.receta) {
+    return [{
+      codigo: String(payload.codigo || '').trim(),
+      receta: String(payload.receta || '').trim(),
+    }];
+  }
+
+  return [];
+}
+
+function normalizeEntregadoItems_(payload) {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if (items.length) {
+    return items.map((item) => ({
+      codigo: String(item?.codigo || '').trim(),
+      cantidad: item?.cantidad,
+      destino: String(item?.destino || '').trim(),
+    }));
+  }
+
+  if (payload.codigo || payload.cantidad || payload.destino) {
+    return [{
+      codigo: String(payload.codigo || '').trim(),
+      cantidad: payload.cantidad,
+      destino: String(payload.destino || '').trim(),
+    }];
+  }
+
+  return [];
+}
+
+function batchAppendRows_(sheet, rows) {
+  if (!rows.length) {
+    return sheet.getLastRow();
+  }
+
+  const startRow = sheet.getLastRow() + 1;
+  sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+  return startRow + rows.length - 1;
 }
 
 function buildResponse_(success, data, message) {
