@@ -5,7 +5,7 @@ const CONFIG = {
   productsSheetName: 'PRODUCTOS',
   recetasSheetName: 'RECETAS',
   destinoSheetName: 'DESTINO',
-  timeZone: Session.getScriptTimeZone() || 'America/Caracas',
+  timeZone: 'America/Caracas',
   columns: {
     timestamp: 1,
     fecha: 2,
@@ -90,7 +90,7 @@ function createReceta_(payload) {
   }
 
   const sheet = getOrCreateMainSheet_();
-  const timestamp = new Date();
+  const timestamp = buildLocalTimestamp_();
   const row = [
     timestamp,
     payload.fecha,
@@ -128,7 +128,7 @@ function createEntregado_(payload) {
   }
 
   const sheet = getOrCreateEntregadoSheet_();
-  const timestamp = new Date();
+  const timestamp = buildLocalTimestamp_();
   const row = [
     timestamp,
     String(payload.fecha || '').trim(),
@@ -344,4 +344,8 @@ function buildResponse_(success, data, message) {
   return ContentService.createTextOutput(
     JSON.stringify({ success, data, message })
   ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function buildLocalTimestamp_() {
+  return Utilities.formatDate(new Date(), CONFIG.timeZone, 'd/M/yyyy HH:mm:ss');
 }
