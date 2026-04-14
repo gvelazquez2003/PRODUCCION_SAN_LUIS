@@ -388,6 +388,10 @@ select:focus {
   padding: 1rem;
 }
 
+.standby-overlay.hidden {
+  display: none;
+}
+
 .standby-panel {
   width: min(420px, 100%);
   background: linear-gradient(180deg, rgba(255, 253, 248, 0.98) 0%, rgba(248, 243, 233, 0.96) 100%);

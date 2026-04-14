@@ -59,6 +59,7 @@ const elements = {
 init();
 
 function init() {
+  resetStandbyState();
   setupUnloadGuard();
   setupNavigation();
   setupCatalogSync();
@@ -98,6 +99,12 @@ function setupUnloadGuard() {
     event.preventDefault();
     event.returnValue = '';
   });
+}
+
+function resetStandbyState() {
+  state.standbyDepth = 0;
+  elements.standbyOverlay?.classList.add('hidden');
+  document.body.classList.remove('is-busy');
 }
 
 function setupCatalogSync() {
