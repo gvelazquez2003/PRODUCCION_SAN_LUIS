@@ -7,8 +7,10 @@ const state = {
   products: [],
   recetas: [],
   destinos: [],
+  motivosMerma: [],
   recetaItems: [],
   entregadoItems: [],
+  mermaItems: [],
 };
 
 const elements = {
@@ -17,6 +19,7 @@ const elements = {
   envWarning: document.getElementById('env-warning'),
   syncCatalogsBtn: document.getElementById('sync-catalogs'),
   syncCatalogsEntregadoBtn: document.getElementById('sync-catalogs-entregado'),
+  syncCatalogsMermaBtn: document.getElementById('sync-catalogs-merma'),
 
   recetasForm: document.getElementById('recetas-form'),
   recetaItemProductoSelect: document.getElementById('receta-item-producto-select'),
@@ -37,6 +40,16 @@ const elements = {
   entregadoItemsEmpty: document.getElementById('entregado-items-empty'),
   entregadoItemsTable: document.getElementById('entregado-items-table'),
 
+  mermaForm: document.getElementById('merma-form'),
+  mermaItemProductoSelect: document.getElementById('merma-item-producto-select'),
+  mermaItemCantidad: document.getElementById('merma-item-cantidad'),
+  mermaItemMotivoSelect: document.getElementById('merma-item-motivo-select'),
+  addMermaItemBtn: document.getElementById('add-merma-item'),
+  mermaItemsBody: document.getElementById('merma-items-body'),
+  mermaItemsWrap: document.getElementById('merma-items-wrap'),
+  mermaItemsEmpty: document.getElementById('merma-items-empty'),
+  mermaItemsTable: document.getElementById('merma-items-table'),
+
   toast: document.getElementById('toast'),
 };
 
@@ -47,6 +60,7 @@ function init() {
   setupCatalogSync();
   setupRecetasForm();
   setupEntregadoForm();
+  setupMermaForm();
   toggleEnvWarning(!APPS_SCRIPT_URL);
 
   if (elements.recetasForm) {
@@ -54,6 +68,9 @@ function init() {
   }
   if (elements.entregadoForm) {
     elements.entregadoForm.dataset.requestId = createRequestId();
+  }
+  if (elements.mermaForm) {
+    elements.mermaForm.dataset.requestId = createRequestId();
   }
 
   fetchCatalogs();
@@ -74,6 +91,7 @@ function setupNavigation() {
 function setupCatalogSync() {
   elements.syncCatalogsBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsEntregadoBtn?.addEventListener('click', () => fetchCatalogs(true));
+  elements.syncCatalogsMermaBtn?.addEventListener('click', () => fetchCatalogs(true));
 }
 
 function setupRecetasForm() {
@@ -186,6 +204,64 @@ function setupEntregadoForm() {
   });
 }
 
+function setupMermaForm() {
+  const form = elements.mermaForm;
+  if (!form) return;
+
+  elements.addMermaItemBtn?.addEventListener('click', addMermaItem);
+
+  elements.mermaItemsTable?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove-merma-item]');
+    if (!button) return;
+    const itemId = String(button.dataset.removeMermaItem || '');
+    if (!itemId) return;
+    state.mermaItems = state.mermaItems.filter((item) => item.id !== itemId);
+    renderMermaItems();
+  });
+
+  form.addEventListener('input', () => {
+    form.dataset.requestId = createRequestId();
+  });
+
+  form.addEventListener('change', () => {
+    form.dataset.requestId = createRequestId();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+      return;
+    }
+
+    if (!state.mermaItems.length) {
+      showToast('Agrega al menos un producto para MERMA.', 'error');
+      return;
+    }
+
+    let payload;
+    try {
+      payload = collectMermaPayload(form);
+    } catch (error) {
+      showToast(error.message || 'Verifica los datos del formulario MERMA.', 'error');
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    try {
+      toggleLoading(submitBtn, true, 'Guardar merma');
+      await postData('createMerma', payload);
+      showToast('Registro de merma guardado correctamente.', 'success');
+      clearMermaItems();
+      resetMermaLineInputs();
+      form.dataset.requestId = createRequestId();
+    } catch (error) {
+      showToast(error.message || 'No se pudo guardar el registro MERMA.', 'error');
+    } finally {
+      toggleLoading(submitBtn, false, 'Guardar merma');
+    }
+  });
+}
+
 function collectRecetaPayload(form) {
   const data = new FormData(form);
   return {
@@ -211,6 +287,23 @@ function collectEntregadoPayload(form) {
       codigo: item.codigo,
       cantidad: item.cantidad,
       destino: item.destino,
+    })),
+    requestId: getOrCreateRequestId(form),
+  };
+}
+
+function collectMermaPayload(form) {
+  const data = new FormData(form);
+  const responsable = String(data.get('responsable') || '').trim();
+  const fecha = String(data.get('fecha') || '').trim();
+
+  return {
+    fecha,
+    responsable,
+    items: state.mermaItems.map((item) => ({
+      codigo: item.codigo,
+      cantidad: item.cantidad,
+      motivoMerma: item.motivoMerma,
     })),
     requestId: getOrCreateRequestId(form),
   };
@@ -286,6 +379,45 @@ function addEntregadoItem() {
   resetEntregadoLineInputs();
 }
 
+function addMermaItem() {
+  const code = String(elements.mermaItemProductoSelect?.value || '').trim();
+  const cantidad = Number(elements.mermaItemCantidad?.value || '');
+  const motivoMerma = String(elements.mermaItemMotivoSelect?.value || '').trim();
+
+  if (!code) {
+    showToast('Selecciona un producto para agregar.', 'error');
+    return;
+  }
+
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+    showToast('La cantidad debe ser un numero entero mayor a cero.', 'error');
+    return;
+  }
+
+  if (!motivoMerma) {
+    showToast('Selecciona un motivo de merma valido.', 'error');
+    return;
+  }
+
+  const product = state.products.find((item) => item.code === code);
+  if (!product) {
+    showToast('Producto no encontrado en catalogo.', 'error');
+    return;
+  }
+
+  state.mermaItems.push({
+    id: createLineItemId(),
+    codigo: product.code,
+    producto: product.producto,
+    unidad: product.unidad,
+    cantidad,
+    motivoMerma,
+  });
+
+  renderMermaItems();
+  resetMermaLineInputs();
+}
+
 function renderRecetaItems() {
   if (!elements.recetasItemsBody || !elements.recetasItemsWrap || !elements.recetasItemsEmpty) return;
 
@@ -335,6 +467,31 @@ function renderEntregadoItems() {
   elements.entregadoItemsEmpty.classList.add('hidden');
 }
 
+function renderMermaItems() {
+  if (!elements.mermaItemsBody || !elements.mermaItemsWrap || !elements.mermaItemsEmpty) return;
+
+  if (!state.mermaItems.length) {
+    elements.mermaItemsBody.innerHTML = '';
+    elements.mermaItemsWrap.classList.add('hidden');
+    elements.mermaItemsEmpty.classList.remove('hidden');
+    return;
+  }
+
+  elements.mermaItemsBody.innerHTML = state.mermaItems.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.codigo)}</td>
+      <td>${escapeHtml(item.producto)}</td>
+      <td>${escapeHtml(item.unidad)}</td>
+      <td>${escapeHtml(item.cantidad)}</td>
+      <td>${escapeHtml(item.motivoMerma)}</td>
+      <td><button type="button" class="btn btn--ghost btn--small" data-remove-merma-item="${escapeHtml(item.id)}">Quitar</button></td>
+    </tr>
+  `).join('');
+
+  elements.mermaItemsWrap.classList.remove('hidden');
+  elements.mermaItemsEmpty.classList.add('hidden');
+}
+
 function clearRecetaItems() {
   state.recetaItems = [];
   renderRecetaItems();
@@ -343,6 +500,11 @@ function clearRecetaItems() {
 function clearEntregadoItems() {
   state.entregadoItems = [];
   renderEntregadoItems();
+}
+
+function clearMermaItems() {
+  state.mermaItems = [];
+  renderMermaItems();
 }
 
 function resetRecetaLineInputs() {
@@ -354,6 +516,12 @@ function resetEntregadoLineInputs() {
   if (elements.entregadoItemProductoSelect) elements.entregadoItemProductoSelect.selectedIndex = 0;
   if (elements.entregadoItemCantidad) elements.entregadoItemCantidad.value = '';
   if (elements.entregadoItemDestinoSelect) elements.entregadoItemDestinoSelect.selectedIndex = 0;
+}
+
+function resetMermaLineInputs() {
+  if (elements.mermaItemProductoSelect) elements.mermaItemProductoSelect.selectedIndex = 0;
+  if (elements.mermaItemCantidad) elements.mermaItemCantidad.value = '';
+  if (elements.mermaItemMotivoSelect) elements.mermaItemMotivoSelect.selectedIndex = 0;
 }
 
 function getOrCreateRequestId(form) {
@@ -389,14 +557,17 @@ async function fetchCatalogs(showToastOnSuccess = false) {
     const products = Array.isArray(data?.data?.products) ? data.data.products : [];
     const recetas = Array.isArray(data?.data?.recetas) ? data.data.recetas : [];
     const destinos = Array.isArray(data?.data?.destinos) ? data.data.destinos : [];
+    const motivosMerma = Array.isArray(data?.data?.motivosMerma) ? data.data.motivosMerma : [];
 
     state.products = products;
     state.recetas = recetas;
     state.destinos = destinos;
+    state.motivosMerma = motivosMerma;
 
     renderProductOptions();
     renderRecetaOptions();
     renderDestinoOptions();
+    renderMotivosMermaOptions();
 
     if (showToastOnSuccess) {
       showToast('Catalogos sincronizados.', 'success');
@@ -414,6 +585,7 @@ function renderProductOptions() {
 
   renderProductSelect(elements.recetaItemProductoSelect, optionRows);
   renderProductSelect(elements.entregadoItemProductoSelect, optionRows);
+  renderProductSelect(elements.mermaItemProductoSelect, optionRows);
 }
 
 function renderProductSelect(select, optionRows) {
@@ -440,6 +612,15 @@ function renderDestinoOptions() {
     ...state.destinos.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
   ];
   elements.entregadoItemDestinoSelect.innerHTML = options.join('');
+}
+
+function renderMotivosMermaOptions() {
+  if (!elements.mermaItemMotivoSelect) return;
+  const options = [
+    '<option value="" selected disabled>Selecciona motivo</option>',
+    ...state.motivosMerma.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`),
+  ];
+  elements.mermaItemMotivoSelect.innerHTML = options.join('');
 }
 
 async function postData(action, payload) {

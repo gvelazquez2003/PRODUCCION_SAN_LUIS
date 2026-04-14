@@ -12,6 +12,8 @@
 - RECETAS
 - DESTINO
 - ENTREGADO
+- MERMA
+- MOTIVOS MERMA
 
 ## Mapeo de columnas en REGISTROS RECETAS
 - Marca Temporal
@@ -32,12 +34,29 @@
 - Destino
 - Responsable
 
+## Mapeo de columnas en MERMA
+- Marca Temporal
+- Fecha
+- Codigos
+- Productos
+- Unidad
+- Cantidad
+- Motivo de la Merma
+- Responsable
+
 ## Catalogos
 - PRODUCTOS: columna A = codigo, columna B = descripcion, columna C = UM.
 - RECETAS: columna A = nombre de receta.
 - DESTINO: columna A = nombre de destino.
+- MOTIVOS MERMA: columna A = motivo de merma.
 
 ## Endpoint disponibles
 - GET ?action=getCatalogs
 - POST action=createReceta
 - POST action=createEntregado
+- POST action=createMerma
+
+## Flujo de envio por modulo
+- RECETAS: Fecha y Responsable fijos por envio; items con Codigo + Receta.
+- ENTREGADO: Fecha y Responsable fijos por envio; items con Codigo + Cantidad + Destino.
+- MERMA: Fecha y Responsable fijos por envio; items con Codigo + Cantidad + Motivo de la Merma.

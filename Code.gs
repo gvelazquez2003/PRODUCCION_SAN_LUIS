@@ -2,9 +2,11 @@ const CONFIG = {
   spreadsheetId: '1jcWH9UD_-bOeDzm8fpn74d-sP3nLHTwD2BUuoqzMvNs',
   mainSheetName: 'REGISTROS RECETAS',
   entregadoSheetName: 'ENTREGADO',
+  mermaSheetName: 'MERMA',
   productsSheetName: 'PRODUCTOS',
   recetasSheetName: 'RECETAS',
   destinoSheetName: 'DESTINO',
+  motivosMermaSheetName: 'MOTIVOS MERMA',
   timeZone: 'America/Caracas',
   columns: {
     timestamp: 1,
@@ -25,7 +27,8 @@ function doGet(e) {
       const products = getProducts_();
       const recetas = getRecetas_();
       const destinos = getDestinos_();
-      return buildResponse_(true, { products, recetas, destinos }, 'Catalogos sincronizados.');
+      const motivosMerma = getMotivosMerma_();
+      return buildResponse_(true, { products, recetas, destinos, motivosMerma }, 'Catalogos sincronizados.');
     }
 
     if (!action || action === 'ping') {
@@ -58,6 +61,10 @@ function doPost(e) {
       case 'createentregado': {
         const result = createEntregado_(payload);
         return buildResponse_(true, result, 'Registro guardado en ENTREGADO.');
+      }
+      case 'createmerma': {
+        const result = createMerma_(payload);
+        return buildResponse_(true, result, 'Registro guardado en MERMA.');
       }
       default:
         return buildResponse_(false, null, 'Accion POST no soportada.');
@@ -174,6 +181,60 @@ function createEntregado_(payload) {
   return { rowInserted: lastRow, rowsInserted: rows.length };
 }
 
+function createMerma_(payload) {
+  validateRequired_(payload, ['fecha', 'responsable']);
+
+  const items = normalizeMermaItems_(payload);
+  if (!items.length) {
+    throw new Error('Debes enviar al menos un producto en MERMA.');
+  }
+
+  const productsByCode = getProductsByCode_();
+  const motivosMerma = getMotivosMerma_();
+  const motivoMap = motivosMerma.reduce((acc, name) => {
+    acc[normalizeText_(name)] = name;
+    return acc;
+  }, {});
+
+  const sheet = getOrCreateMermaSheet_();
+  const timestamp = buildLocalTimestamp_();
+  const fecha = String(payload.fecha || '').trim();
+  const responsable = String(payload.responsable || '').trim();
+
+  const rows = items.map((item, index) => {
+    validateRequired_(item, ['codigo', 'motivoMerma', 'cantidad']);
+
+    const product = productsByCode[normalizeText_(item.codigo)];
+    if (!product) {
+      throw new Error(`El codigo del item ${index + 1} no existe en la hoja PRODUCTOS.`);
+    }
+
+    const cantidad = Number(item.cantidad);
+    if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad <= 0) {
+      throw new Error(`La cantidad del item ${index + 1} debe ser un numero entero mayor a cero.`);
+    }
+
+    const motivo = motivoMap[normalizeText_(item.motivoMerma)];
+    if (!motivo) {
+      throw new Error(`El motivo del item ${index + 1} no existe en la hoja MOTIVOS MERMA.`);
+    }
+
+    return [
+      timestamp,
+      fecha,
+      product.code,
+      product.producto,
+      product.unidad,
+      cantidad,
+      motivo,
+      responsable,
+    ];
+  });
+
+  const lastRow = batchAppendRows_(sheet, rows);
+  return { rowInserted: lastRow, rowsInserted: rows.length };
+}
+
 function getProducts_() {
   const sheet = getSpreadsheet_().getSheetByName(CONFIG.productsSheetName);
   if (!sheet) {
@@ -235,6 +296,28 @@ function getDestinos_() {
   return Array.from(unique.values());
 }
 
+function getMotivosMerma_() {
+  const sheet = getSpreadsheet_().getSheetByName(CONFIG.motivosMermaSheetName);
+  if (!sheet) {
+    throw new Error('No se encontro la hoja MOTIVOS MERMA.');
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const rows = values.slice(1);
+
+  const unique = new Map();
+  rows.forEach((row) => {
+    const name = String(row[0] || '').trim();
+    if (!name) return;
+    const key = normalizeText_(name);
+    if (!unique.has(key)) {
+      unique.set(key, name);
+    }
+  });
+
+  return Array.from(unique.values());
+}
+
 function parseBody_(e) {
   if (!e?.postData?.contents) {
     throw new Error('Cuerpo POST vacio.');
@@ -267,6 +350,18 @@ function getOrCreateEntregadoSheet_() {
   }
 
   ensureEntregadoSheetLayout_(sheet);
+  return sheet;
+}
+
+function getOrCreateMermaSheet_() {
+  const ss = getSpreadsheet_();
+  let sheet = ss.getSheetByName(CONFIG.mermaSheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.mermaSheetName);
+  }
+
+  ensureMermaSheetLayout_(sheet);
   return sheet;
 }
 
@@ -350,6 +445,30 @@ function ensureEntregadoSheetLayout_(sheet) {
   sheet.setFrozenRows(1);
 }
 
+function ensureMermaSheetLayout_(sheet) {
+  const headers = [
+    'Marca Temporal',
+    'Fecha',
+    'Codigos',
+    'Productos',
+    'Unidad',
+    'Cantidad',
+    'Motivo de la Merma',
+    'Responsable',
+  ];
+
+  const range = sheet.getRange(1, 1, 1, headers.length);
+  const current = range.getValues()[0];
+  const needsUpdate = headers.some((header, index) => String(current[index] || '').trim() !== header);
+
+  if (needsUpdate) {
+    range.setValues([headers]);
+    range.setFontWeight('bold');
+  }
+
+  sheet.setFrozenRows(1);
+}
+
 function validateRequired_(payload, fields) {
   fields.forEach((field) => {
     const value = payload[field];
@@ -404,6 +523,27 @@ function normalizeEntregadoItems_(payload) {
       codigo: String(payload.codigo || '').trim(),
       cantidad: payload.cantidad,
       destino: String(payload.destino || '').trim(),
+    }];
+  }
+
+  return [];
+}
+
+function normalizeMermaItems_(payload) {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if (items.length) {
+    return items.map((item) => ({
+      codigo: String(item?.codigo || '').trim(),
+      cantidad: item?.cantidad,
+      motivoMerma: String(item?.motivoMerma || '').trim(),
+    }));
+  }
+
+  if (payload.codigo || payload.cantidad || payload.motivoMerma) {
+    return [{
+      codigo: String(payload.codigo || '').trim(),
+      cantidad: payload.cantidad,
+      motivoMerma: String(payload.motivoMerma || '').trim(),
     }];
   }
 

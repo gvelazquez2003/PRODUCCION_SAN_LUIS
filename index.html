@@ -181,11 +181,75 @@
       </section>
 
       <section class="view" data-view="merma">
-        <div class="placeholder card">
-          <h2>Modulo MERMA</h2>
-          <p>Este modulo queda listo en estructura visual. Cuando me compartas las columnas exactas, te lo conecto al Sheet.</p>
-          <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+        <div class="section-head">
+          <h2>Formulario MERMA</h2>
+          <div class="section-head__actions">
+            <button id="sync-catalogs-merma" type="button" class="btn btn--ghost">Sincronizar catalogos</button>
+            <button type="button" class="btn btn--ghost" data-view-target="home">Volver al menu</button>
+          </div>
         </div>
+
+        <form id="merma-form" class="card">
+          <div class="form-grid">
+            <label>
+              <span>Fecha</span>
+              <input type="date" name="fecha" required />
+            </label>
+
+            <label>
+              <span>Responsable</span>
+              <input type="text" name="responsable" placeholder="Nombre y apellido" required />
+            </label>
+          </div>
+
+          <div class="items-card">
+            <h3>Agregar productos al envio</h3>
+            <div class="line-grid line-grid--entregado">
+              <label>
+                <span>Producto</span>
+                <select id="merma-item-producto-select">
+                  <option value="" selected disabled>Selecciona producto</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Cantidad</span>
+                <input id="merma-item-cantidad" type="number" min="1" step="1" placeholder="0" />
+              </label>
+
+              <label>
+                <span>Motivo de la Merma</span>
+                <select id="merma-item-motivo-select">
+                  <option value="" selected disabled>Selecciona motivo</option>
+                </select>
+              </label>
+
+              <button id="add-merma-item" type="button" class="btn btn--ghost line-grid__button">Agregar producto</button>
+            </div>
+
+            <p id="merma-items-empty" class="items-empty">Todavia no agregaste productos al envio.</p>
+
+            <div class="items-table-wrap hidden" id="merma-items-wrap">
+              <table class="items-table" id="merma-items-table">
+                <thead>
+                  <tr>
+                    <th>Codigo</th>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>Motivo de la Merma</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="merma-items-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn">Guardar merma</button>
+          </div>
+        </form>
       </section>
     </main>
 

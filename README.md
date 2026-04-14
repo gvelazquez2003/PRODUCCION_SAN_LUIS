@@ -3,7 +3,7 @@
 Proyecto estatico para registrar PRODUCCION SAN LUIS con 3 modulos visuales:
 - RECETAS (implementado y conectado a Google Sheets)
 - ENTREGADO (implementado y conectado a Google Sheets)
-- MERMA (estructura lista)
+- MERMA (implementado y conectado a Google Sheets)
 
 ## Estructura del proyecto
 - index.html
@@ -28,6 +28,8 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - RECETAS
 - DESTINO
 - ENTREGADO
+- MERMA
+- MOTIVOS MERMA
 
 2. Configurar hoja PRODUCTOS:
 - Fila 1:
@@ -71,7 +73,23 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - Validacion para F2:F con rango RECETAS!A2:A
 - En ENTREGADO, validacion para G2:G con rango DESTINO!A2:A
 
-8. Configurar Apps Script:
+8. Configurar hoja MOTIVOS MERMA:
+- Fila 1 puede ser cualquier encabezado (por ejemplo MOTIVO).
+- Desde A2 en adelante: motivos válidos de merma.
+
+9. Configurar hoja MERMA:
+- A1: Marca Temporal
+- B1: Fecha
+- C1: Codigos
+- D1: Productos
+- E1: Unidad
+- F1: Cantidad
+- G1: Motivo de la Merma
+- H1: Responsable
+
+10. (Opcional en Google Sheets) En MERMA, validacion para G2:G con rango MOTIVOS MERMA!A2:A
+
+11. Configurar Apps Script:
 - Abre Extensiones > Apps Script
 - Copia y pega Code.gs de este proyecto
 - Deploy > New deployment > Web app
@@ -79,27 +97,30 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - Access: Anyone / Anyone with the link
 - Copia la URL del Web App
 
-9. Conectar frontend con Apps Script:
+12. Conectar frontend con Apps Script:
 - En index.html, cambia:
   window.APPS_SCRIPT_URL = '';
 - Por la URL de tu Web App.
 
-10. Probar local:
+13. Probar local:
 - Usa un servidor estatico y abre index.html
 - Entra a modulo RECETAS
 - Pulsa Sincronizar catalogos
-- Selecciona producto, receta, fecha y responsable
-- Guarda y valida fila nueva en REGISTROS RECETAS
+- Agrega uno o varios productos, cada uno con su receta
+- Guarda y valida filas nuevas en REGISTROS RECETAS
 - Entra a modulo ENTREGADO
-- Selecciona fecha, producto, cantidad, destino y responsable
-- Guarda y valida fila nueva en ENTREGADO
+- Agrega uno o varios productos, cada uno con cantidad y destino
+- Guarda y valida filas nuevas en ENTREGADO
+- Entra a modulo MERMA
+- Agrega uno o varios productos, cada uno con cantidad y motivo de merma
+- Guarda y valida filas nuevas en MERMA
 
-11. Despliegue en Vercel:
+14. Despliegue en Vercel:
 - Importa esta carpeta como proyecto
 - Framework: Other
 - Publica
 
 ## Notas
-- El modulo RECETAS ya guarda en REGISTROS RECETAS con columnas exactas, incluyendo Unidades (UM) desde PRODUCTOS.
-- El modulo ENTREGADO ya guarda en la hoja ENTREGADO y valida destino contra la hoja DESTINO.
-- MERMA queda listo visualmente para conectar cuando definas columnas/reglas finales.
+- El modulo RECETAS guarda en REGISTROS RECETAS y permite multiples productos por envio (Fecha y Responsable fijos).
+- El modulo ENTREGADO guarda en ENTREGADO y valida DESTINO, con multiples productos por envio.
+- El modulo MERMA guarda en MERMA y valida MOTIVOS MERMA, con multiples productos por envio.
