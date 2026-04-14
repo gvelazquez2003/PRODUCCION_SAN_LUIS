@@ -11,6 +11,7 @@ const state = {
   recetaItems: [],
   entregadoItems: [],
   mermaItems: [],
+  standbyDepth: 0,
 };
 
 const elements = {
@@ -51,11 +52,14 @@ const elements = {
   mermaItemsTable: document.getElementById('merma-items-table'),
 
   toast: document.getElementById('toast'),
+  standbyOverlay: document.getElementById('standby-overlay'),
+  standbyMessage: document.getElementById('standby-message'),
 };
 
 init();
 
 function init() {
+  setupUnloadGuard();
   setupNavigation();
   setupCatalogSync();
   setupRecetasForm();
@@ -85,6 +89,14 @@ function setupNavigation() {
         view.classList.toggle('active', view.dataset.view === target);
       });
     });
+  });
+}
+
+function setupUnloadGuard() {
+  window.addEventListener('beforeunload', (event) => {
+    if (!isStandbyVisible()) return;
+    event.preventDefault();
+    event.returnValue = '';
   });
 }
 
@@ -133,6 +145,7 @@ function setupRecetasForm() {
     const submitBtn = form.querySelector('button[type="submit"]');
     try {
       toggleLoading(submitBtn, true, 'Guardar registro');
+      showStandby('Cargando...');
       await postData('createReceta', payload);
       showToast('Registro de receta guardado correctamente.', 'success');
       clearRecetaItems();
@@ -141,6 +154,7 @@ function setupRecetasForm() {
     } catch (error) {
       showToast(error.message || 'No se pudo guardar el registro de receta.', 'error');
     } finally {
+      hideStandby();
       toggleLoading(submitBtn, false, 'Guardar registro');
     }
   });
@@ -191,6 +205,7 @@ function setupEntregadoForm() {
     const submitBtn = form.querySelector('button[type="submit"]');
     try {
       toggleLoading(submitBtn, true, 'Guardar entregado');
+      showStandby('Cargando...');
       await postData('createEntregado', payload);
       showToast('Registro de entregado guardado correctamente.', 'success');
       clearEntregadoItems();
@@ -199,6 +214,7 @@ function setupEntregadoForm() {
     } catch (error) {
       showToast(error.message || 'No se pudo guardar el registro ENTREGADO.', 'error');
     } finally {
+      hideStandby();
       toggleLoading(submitBtn, false, 'Guardar entregado');
     }
   });
@@ -249,6 +265,7 @@ function setupMermaForm() {
     const submitBtn = form.querySelector('button[type="submit"]');
     try {
       toggleLoading(submitBtn, true, 'Guardar merma');
+      showStandby('Cargando...');
       await postData('createMerma', payload);
       showToast('Registro de merma guardado correctamente.', 'success');
       clearMermaItems();
@@ -257,6 +274,7 @@ function setupMermaForm() {
     } catch (error) {
       showToast(error.message || 'No se pudo guardar el registro MERMA.', 'error');
     } finally {
+      hideStandby();
       toggleLoading(submitBtn, false, 'Guardar merma');
     }
   });
@@ -671,6 +689,28 @@ function toggleLoading(button, loading, idleText) {
 
 function toggleEnvWarning(show) {
   elements.envWarning?.classList.toggle('hidden', !show);
+}
+
+function showStandby(message) {
+  state.standbyDepth += 1;
+  if (elements.standbyMessage) {
+    elements.standbyMessage.textContent = String(message || 'Cargando...');
+  }
+  elements.standbyOverlay?.classList.remove('hidden');
+  document.body.classList.add('is-busy');
+}
+
+function hideStandby() {
+  state.standbyDepth = Math.max(0, state.standbyDepth - 1);
+  if (state.standbyDepth > 0) {
+    return;
+  }
+  elements.standbyOverlay?.classList.add('hidden');
+  document.body.classList.remove('is-busy');
+}
+
+function isStandbyVisible() {
+  return state.standbyDepth > 0;
 }
 
 let toastTimeout;

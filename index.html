@@ -255,6 +255,14 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+    <div id="standby-overlay" class="standby-overlay hidden" aria-live="assertive" aria-busy="true" role="status">
+      <div class="standby-panel">
+        <div class="standby-spinner" aria-hidden="true"></div>
+        <p id="standby-message">Cargando...</p>
+        <small>No cierres esta pagina hasta que termine el envio.</small>
+      </div>
+    </div>
+
     <script>
       window.APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxB3D7a6mHUNHEU4BgGMNlJAEDXLVS1QaujNwKKcAeXTck5ivU7AXqnQZQYiT0wuAk_Rw/exec';
     </script>
