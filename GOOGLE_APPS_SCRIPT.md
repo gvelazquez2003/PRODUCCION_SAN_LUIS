@@ -7,20 +7,21 @@
 5. Copia la URL del deployment y pegala en index.html.
 
 ## Hojas requeridas
-- REGISTROS
+- REGISTROS RECETAS
 - PRODUCTOS
 - RECETAS
 
-## Mapeo de columnas en REGISTROS
+## Mapeo de columnas en REGISTROS RECETAS
 - Marca Temporal
 - Fecha
 - Codigos
 - Productos
+- Unidades
 - Receta
 - Responsable
 
 ## Catalogos
-- PRODUCTOS: columna A = codigo, columna B = producto.
+- PRODUCTOS: columna A = codigo, columna B = descripcion, columna C = UM.
 - RECETAS: columna A = nombre de receta.
 
 ## Endpoint disponibles

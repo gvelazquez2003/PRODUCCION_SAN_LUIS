@@ -9,8 +9,9 @@ const CONFIG = {
     fecha: 2,
     codigo: 3,
     producto: 4,
-    receta: 5,
-    responsable: 6,
+    unidad: 5,
+    receta: 6,
+    responsable: 7,
   },
 };
 
@@ -88,6 +89,7 @@ function createReceta_(payload) {
     payload.fecha,
     product.code,
     product.producto,
+    product.unidad,
     String(payload.receta || '').trim(),
     String(payload.responsable || '').trim(),
   ];
@@ -110,6 +112,7 @@ function getProducts_() {
     .map((row) => ({
       code: String(row[0]).trim(),
       producto: String(row[1]).trim(),
+      unidad: String(row[2] || '').trim() || 'UND',
     }));
 }
 
@@ -153,12 +156,12 @@ function getOrCreateMainSheet_() {
     sheet = ss.insertSheet(CONFIG.mainSheetName);
   }
 
-  ensureMainHeaders_(sheet);
+  ensureMainSheetLayout_(sheet);
   return sheet;
 }
 
-function ensureMainHeaders_(sheet) {
-  const headers = [
+function ensureMainSheetLayout_(sheet) {
+  const oldHeaders = [
     'Marca Temporal',
     'Fecha',
     'Codigos',
@@ -167,15 +170,50 @@ function ensureMainHeaders_(sheet) {
     'Responsable',
   ];
 
+  const headers = [
+    'Marca Temporal',
+    'Fecha',
+    'Codigos',
+    'Productos',
+    'Unidades',
+    'Receta',
+    'Responsable',
+  ];
+
+  const currentRaw = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+  const current = currentRaw.map((value) => String(value || '').trim());
+  const isOldLayout =
+    oldHeaders.every((header, index) => current[index] === header) &&
+    current[oldHeaders.length] === '';
+
+  if (isOldLayout) {
+    migrateOldRecetasLayout_(sheet);
+  }
+
   const range = sheet.getRange(1, 1, 1, headers.length);
-  const current = range.getValues()[0];
-  const needsUpdate = headers.some((header, index) => String(current[index] || '').trim() !== header);
+  const updatedCurrent = range.getValues()[0];
+  const needsUpdate = headers.some((header, index) => String(updatedCurrent[index] || '').trim() !== header);
 
   if (needsUpdate) {
     range.setValues([headers]);
     range.setFontWeight('bold');
-    sheet.setFrozenRows(1);
   }
+
+  sheet.setFrozenRows(1);
+}
+
+function migrateOldRecetasLayout_(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const totalRows = lastRow - 1;
+  const currentColG = sheet.getRange(2, CONFIG.columns.responsable, totalRows, 1).getValues();
+  const hasColGData = currentColG.some((row) => String(row[0] || '').trim() !== '');
+  if (hasColGData) return;
+
+  const oldRecetaResponsable = sheet.getRange(2, 5, totalRows, 2).getValues();
+  const migrated = oldRecetaResponsable.map((row) => ['', row[0], row[1]]);
+  sheet.getRange(2, 5, totalRows, 3).setValues(migrated);
 }
 
 function validateRequired_(payload, fields) {

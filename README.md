@@ -31,7 +31,8 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - Fila 1:
   - A1: CODIGO
   - B1: DESCRIPCION
-- Desde A2/B2 en adelante: catalogo de productos.
+  - C1: UM
+- Desde A2/C2 en adelante: catalogo de productos.
 
 3. Configurar hoja RECETAS:
 - Fila 1:
@@ -43,14 +44,15 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - B1: Fecha
 - C1: Codigos
 - D1: Productos
-- E1: Receta
-- F1: Responsable
+- E1: Unidades
+- F1: Receta
+- G1: Responsable
 
 5. (Opcional en Google Sheets) Si quieres que se vea y funcione como tabla guiada dentro del propio Sheet:
 - Validacion para C2:C con rango PRODUCTOS!A2:A
 - Formula en D2 para autollenado de producto segun codigo:
   =ARRAYFORMULA(IF(C2:C="","",IFERROR(VLOOKUP(C2:C,PRODUCTOS!A:B,2,FALSE),"")))
-- Validacion para E2:E con rango RECETAS!A2:A
+- Validacion para F2:F con rango RECETAS!A2:A
 
 6. Configurar Apps Script:
 - Abre Extensiones > Apps Script
@@ -78,5 +80,5 @@ https://produccion-san-luis-eh5tihhef-gustavos-projects-cc77f2e0.vercel.app/
 - Publica
 
 ## Notas
-- El modulo RECETAS ya guarda en REGISTROS RECETAS con columnas exactas.
+- El modulo RECETAS ya guarda en REGISTROS RECETAS con columnas exactas, incluyendo Unidades (UM) desde PRODUCTOS.
 - ENTREGADO y MERMA quedaron listos visualmente para que al pasarme columnas y reglas te los conecte igual.
