@@ -1,6 +1,6 @@
 'use strict';
 
-const CURRENT_APPS_SCRIPT_URL = '';
+const CURRENT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxB3D7a6mHUNHEU4BgGMNlJAEDXLVS1QaujNwKKcAeXTck5ivU7AXqnQZQYiT0wuAk_Rw/exec';
 const APPS_SCRIPT_URL = String(window.APPS_SCRIPT_URL || CURRENT_APPS_SCRIPT_URL || '').trim();
 
 const state = {
