@@ -23,6 +23,7 @@ const elements = {
   syncCatalogsMermaBtn: document.getElementById('sync-catalogs-merma'),
 
   recetasForm: document.getElementById('recetas-form'),
+  recetaItemProductoSearch: document.getElementById('receta-item-producto-search'),
   recetaItemProductoSelect: document.getElementById('receta-item-producto-select'),
   recetaItemRecetaSelect: document.getElementById('receta-item-receta-select'),
   addRecetaItemBtn: document.getElementById('add-receta-item'),
@@ -32,6 +33,7 @@ const elements = {
   recetasItemsTable: document.getElementById('recetas-items-table'),
 
   entregadoForm: document.getElementById('entregado-form'),
+  entregadoItemProductoSearch: document.getElementById('entregado-item-producto-search'),
   entregadoItemProductoSelect: document.getElementById('entregado-item-producto-select'),
   entregadoItemCantidad: document.getElementById('entregado-item-cantidad'),
   entregadoItemDestinoSelect: document.getElementById('entregado-item-destino-select'),
@@ -42,6 +44,7 @@ const elements = {
   entregadoItemsTable: document.getElementById('entregado-items-table'),
 
   mermaForm: document.getElementById('merma-form'),
+  mermaItemProductoSearch: document.getElementById('merma-item-producto-search'),
   mermaItemProductoSelect: document.getElementById('merma-item-producto-select'),
   mermaItemCantidad: document.getElementById('merma-item-cantidad'),
   mermaItemMotivoSelect: document.getElementById('merma-item-motivo-select'),
@@ -63,6 +66,7 @@ function init() {
   setupUnloadGuard();
   setupNavigation();
   setupCatalogSync();
+  setupProductSearchInputs();
   setupRecetasForm();
   setupEntregadoForm();
   setupMermaForm();
@@ -111,6 +115,19 @@ function setupCatalogSync() {
   elements.syncCatalogsBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsEntregadoBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsMermaBtn?.addEventListener('click', () => fetchCatalogs(true));
+}
+
+function setupProductSearchInputs() {
+  bindProductSearchInput(elements.recetaItemProductoSearch, elements.recetaItemProductoSelect);
+  bindProductSearchInput(elements.entregadoItemProductoSearch, elements.entregadoItemProductoSelect);
+  bindProductSearchInput(elements.mermaItemProductoSearch, elements.mermaItemProductoSelect);
+}
+
+function bindProductSearchInput(input, select) {
+  if (!input || !select) return;
+  input.addEventListener('input', () => {
+    renderProductSelect(select, input.value);
+  });
 }
 
 function setupRecetasForm() {
@@ -533,18 +550,21 @@ function clearMermaItems() {
 }
 
 function resetRecetaLineInputs() {
-  if (elements.recetaItemProductoSelect) elements.recetaItemProductoSelect.selectedIndex = 0;
+  if (elements.recetaItemProductoSearch) elements.recetaItemProductoSearch.value = '';
+  renderProductSelect(elements.recetaItemProductoSelect, '');
   if (elements.recetaItemRecetaSelect) elements.recetaItemRecetaSelect.selectedIndex = 0;
 }
 
 function resetEntregadoLineInputs() {
-  if (elements.entregadoItemProductoSelect) elements.entregadoItemProductoSelect.selectedIndex = 0;
+  if (elements.entregadoItemProductoSearch) elements.entregadoItemProductoSearch.value = '';
+  renderProductSelect(elements.entregadoItemProductoSelect, '');
   if (elements.entregadoItemCantidad) elements.entregadoItemCantidad.value = '';
   if (elements.entregadoItemDestinoSelect) elements.entregadoItemDestinoSelect.selectedIndex = 0;
 }
 
 function resetMermaLineInputs() {
-  if (elements.mermaItemProductoSelect) elements.mermaItemProductoSelect.selectedIndex = 0;
+  if (elements.mermaItemProductoSearch) elements.mermaItemProductoSearch.value = '';
+  renderProductSelect(elements.mermaItemProductoSelect, '');
   if (elements.mermaItemCantidad) elements.mermaItemCantidad.value = '';
   if (elements.mermaItemMotivoSelect) elements.mermaItemMotivoSelect.selectedIndex = 0;
 }
@@ -604,21 +624,61 @@ async function fetchCatalogs(showToastOnSuccess = false) {
 }
 
 function renderProductOptions() {
-  const optionRows = state.products.map(
-    (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
-  );
-
-  renderProductSelect(elements.recetaItemProductoSelect, optionRows);
-  renderProductSelect(elements.entregadoItemProductoSelect, optionRows);
-  renderProductSelect(elements.mermaItemProductoSelect, optionRows);
+  renderProductSelect(elements.recetaItemProductoSelect, elements.recetaItemProductoSearch?.value || '');
+  renderProductSelect(elements.entregadoItemProductoSelect, elements.entregadoItemProductoSearch?.value || '');
+  renderProductSelect(elements.mermaItemProductoSelect, elements.mermaItemProductoSearch?.value || '');
 }
 
-function renderProductSelect(select, optionRows) {
+function renderProductSelect(select, queryText = '') {
   if (!select) return;
+  const currentValue = String(select.value || '').trim();
+  const filteredProducts = getFilteredProducts(queryText);
+  let productsForOptions = filteredProducts;
+
+  if (currentValue) {
+    const selectedProduct = state.products.find((item) => item.code === currentValue);
+    if (selectedProduct && !productsForOptions.some((item) => item.code === selectedProduct.code)) {
+      productsForOptions = [selectedProduct, ...productsForOptions];
+    }
+  }
+
+  const optionRows = buildProductOptionRows(productsForOptions);
+  const emptyLabel = String(queryText || '').trim() ? 'Sin resultados para la busqueda' : 'Selecciona producto';
   select.innerHTML = [
-    '<option value="" selected disabled>Selecciona producto</option>',
+    `<option value="" selected disabled>${escapeHtml(emptyLabel)}</option>`,
     ...optionRows,
   ].join('');
+
+  if (currentValue && productsForOptions.some((item) => item.code === currentValue)) {
+    select.value = currentValue;
+  } else {
+    select.selectedIndex = 0;
+  }
+}
+
+function buildProductOptionRows(products) {
+  return (products || []).map(
+    (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
+  );
+}
+
+function getFilteredProducts(queryText) {
+  const query = normalizeSearchText(queryText);
+  if (!query) return state.products.slice();
+
+  return state.products.filter((item) => {
+    const code = normalizeSearchText(item.code);
+    const producto = normalizeSearchText(item.producto);
+    return code.includes(query) || producto.includes(query);
+  });
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 }
 
 function renderRecetaOptions() {
