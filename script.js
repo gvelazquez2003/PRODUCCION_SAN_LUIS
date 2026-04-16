@@ -23,8 +23,8 @@ const elements = {
   syncCatalogsMermaBtn: document.getElementById('sync-catalogs-merma'),
 
   recetasForm: document.getElementById('recetas-form'),
-  recetaItemProductoSearch: document.getElementById('receta-item-producto-search'),
   recetaItemProductoSelect: document.getElementById('receta-item-producto-select'),
+  recetaItemProductoList: document.getElementById('receta-item-producto-list'),
   recetaItemRecetaSelect: document.getElementById('receta-item-receta-select'),
   addRecetaItemBtn: document.getElementById('add-receta-item'),
   recetasItemsBody: document.getElementById('recetas-items-body'),
@@ -33,8 +33,8 @@ const elements = {
   recetasItemsTable: document.getElementById('recetas-items-table'),
 
   entregadoForm: document.getElementById('entregado-form'),
-  entregadoItemProductoSearch: document.getElementById('entregado-item-producto-search'),
   entregadoItemProductoSelect: document.getElementById('entregado-item-producto-select'),
+  entregadoItemProductoList: document.getElementById('entregado-item-producto-list'),
   entregadoItemCantidad: document.getElementById('entregado-item-cantidad'),
   entregadoItemDestinoSelect: document.getElementById('entregado-item-destino-select'),
   addEntregadoItemBtn: document.getElementById('add-entregado-item'),
@@ -44,8 +44,8 @@ const elements = {
   entregadoItemsTable: document.getElementById('entregado-items-table'),
 
   mermaForm: document.getElementById('merma-form'),
-  mermaItemProductoSearch: document.getElementById('merma-item-producto-search'),
   mermaItemProductoSelect: document.getElementById('merma-item-producto-select'),
+  mermaItemProductoList: document.getElementById('merma-item-producto-list'),
   mermaItemCantidad: document.getElementById('merma-item-cantidad'),
   mermaItemMotivoSelect: document.getElementById('merma-item-motivo-select'),
   addMermaItemBtn: document.getElementById('add-merma-item'),
@@ -66,7 +66,6 @@ function init() {
   setupUnloadGuard();
   setupNavigation();
   setupCatalogSync();
-  setupProductSearchInputs();
   setupRecetasForm();
   setupEntregadoForm();
   setupMermaForm();
@@ -115,19 +114,6 @@ function setupCatalogSync() {
   elements.syncCatalogsBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsEntregadoBtn?.addEventListener('click', () => fetchCatalogs(true));
   elements.syncCatalogsMermaBtn?.addEventListener('click', () => fetchCatalogs(true));
-}
-
-function setupProductSearchInputs() {
-  bindProductSearchInput(elements.recetaItemProductoSearch, elements.recetaItemProductoSelect);
-  bindProductSearchInput(elements.entregadoItemProductoSearch, elements.entregadoItemProductoSelect);
-  bindProductSearchInput(elements.mermaItemProductoSearch, elements.mermaItemProductoSelect);
-}
-
-function bindProductSearchInput(input, select) {
-  if (!input || !select) return;
-  input.addEventListener('input', () => {
-    renderProductSelect(select, input.value);
-  });
 }
 
 function setupRecetasForm() {
@@ -352,7 +338,7 @@ function collectMermaPayload(form) {
 }
 
 function addRecetaItem() {
-  const code = String(elements.recetaItemProductoSelect?.value || '').trim();
+  const code = resolveProductCode(elements.recetaItemProductoSelect?.value);
   const receta = String(elements.recetaItemRecetaSelect?.value || '').trim();
 
   if (!code) {
@@ -383,7 +369,7 @@ function addRecetaItem() {
 }
 
 function addEntregadoItem() {
-  const code = String(elements.entregadoItemProductoSelect?.value || '').trim();
+  const code = resolveProductCode(elements.entregadoItemProductoSelect?.value);
   const cantidad = Number(elements.entregadoItemCantidad?.value || '');
   const destino = String(elements.entregadoItemDestinoSelect?.value || '').trim();
 
@@ -422,7 +408,7 @@ function addEntregadoItem() {
 }
 
 function addMermaItem() {
-  const code = String(elements.mermaItemProductoSelect?.value || '').trim();
+  const code = resolveProductCode(elements.mermaItemProductoSelect?.value);
   const cantidad = Number(elements.mermaItemCantidad?.value || '');
   const motivoMerma = String(elements.mermaItemMotivoSelect?.value || '').trim();
 
@@ -550,21 +536,18 @@ function clearMermaItems() {
 }
 
 function resetRecetaLineInputs() {
-  if (elements.recetaItemProductoSearch) elements.recetaItemProductoSearch.value = '';
-  renderProductSelect(elements.recetaItemProductoSelect, '');
+  if (elements.recetaItemProductoSelect) elements.recetaItemProductoSelect.value = '';
   if (elements.recetaItemRecetaSelect) elements.recetaItemRecetaSelect.selectedIndex = 0;
 }
 
 function resetEntregadoLineInputs() {
-  if (elements.entregadoItemProductoSearch) elements.entregadoItemProductoSearch.value = '';
-  renderProductSelect(elements.entregadoItemProductoSelect, '');
+  if (elements.entregadoItemProductoSelect) elements.entregadoItemProductoSelect.value = '';
   if (elements.entregadoItemCantidad) elements.entregadoItemCantidad.value = '';
   if (elements.entregadoItemDestinoSelect) elements.entregadoItemDestinoSelect.selectedIndex = 0;
 }
 
 function resetMermaLineInputs() {
-  if (elements.mermaItemProductoSearch) elements.mermaItemProductoSearch.value = '';
-  renderProductSelect(elements.mermaItemProductoSelect, '');
+  if (elements.mermaItemProductoSelect) elements.mermaItemProductoSelect.value = '';
   if (elements.mermaItemCantidad) elements.mermaItemCantidad.value = '';
   if (elements.mermaItemMotivoSelect) elements.mermaItemMotivoSelect.selectedIndex = 0;
 }
@@ -624,53 +607,44 @@ async function fetchCatalogs(showToastOnSuccess = false) {
 }
 
 function renderProductOptions() {
-  renderProductSelect(elements.recetaItemProductoSelect, elements.recetaItemProductoSearch?.value || '');
-  renderProductSelect(elements.entregadoItemProductoSelect, elements.entregadoItemProductoSearch?.value || '');
-  renderProductSelect(elements.mermaItemProductoSelect, elements.mermaItemProductoSearch?.value || '');
+  const rows = buildProductOptionRows(state.products);
+  renderProductInputList(elements.recetaItemProductoList, rows);
+  renderProductInputList(elements.entregadoItemProductoList, rows);
+  renderProductInputList(elements.mermaItemProductoList, rows);
 }
 
-function renderProductSelect(select, queryText = '') {
-  if (!select) return;
-  const currentValue = String(select.value || '').trim();
-  const filteredProducts = getFilteredProducts(queryText);
-  let productsForOptions = filteredProducts;
-
-  if (currentValue) {
-    const selectedProduct = state.products.find((item) => item.code === currentValue);
-    if (selectedProduct && !productsForOptions.some((item) => item.code === selectedProduct.code)) {
-      productsForOptions = [selectedProduct, ...productsForOptions];
-    }
-  }
-
-  const optionRows = buildProductOptionRows(productsForOptions);
-  const emptyLabel = String(queryText || '').trim() ? 'Sin resultados para la busqueda' : 'Selecciona producto';
-  select.innerHTML = [
-    `<option value="" selected disabled>${escapeHtml(emptyLabel)}</option>`,
-    ...optionRows,
-  ].join('');
-
-  if (currentValue && productsForOptions.some((item) => item.code === currentValue)) {
-    select.value = currentValue;
-  } else {
-    select.selectedIndex = 0;
-  }
+function renderProductInputList(listElement, optionRows) {
+  if (!listElement) return;
+  listElement.innerHTML = optionRows.join('');
 }
 
 function buildProductOptionRows(products) {
   return (products || []).map(
-    (item) => `<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} - ${escapeHtml(item.producto)}</option>`
+    (item) => `<option value="${escapeHtml(formatProductLabel(item))}"></option>`
   );
 }
 
-function getFilteredProducts(queryText) {
-  const query = normalizeSearchText(queryText);
-  if (!query) return state.products.slice();
+function formatProductLabel(product) {
+  const code = String(product?.code || '').trim();
+  const name = String(product?.producto || '').trim();
+  return `${code} - ${name}`;
+}
 
-  return state.products.filter((item) => {
-    const code = normalizeSearchText(item.code);
-    const producto = normalizeSearchText(item.producto);
-    return code.includes(query) || producto.includes(query);
-  });
+function resolveProductCode(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return '';
+
+  const normalizedRaw = normalizeSearchText(raw);
+  const fromCode = state.products.find((item) => normalizeSearchText(item.code) === normalizedRaw);
+  if (fromCode) return fromCode.code;
+
+  const fromLabel = state.products.find((item) => normalizeSearchText(formatProductLabel(item)) === normalizedRaw);
+  if (fromLabel) return fromLabel.code;
+
+  const fromName = state.products.find((item) => normalizeSearchText(item.producto) === normalizedRaw);
+  if (fromName) return fromName.code;
+
+  return '';
 }
 
 function normalizeSearchText(value) {
