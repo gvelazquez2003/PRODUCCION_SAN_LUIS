@@ -64,6 +64,7 @@ init();
 function init() {
   resetStandbyState();
   setupUnloadGuard();
+  setupDateQuickButtons();
   setupNavigation();
   setupCatalogSync();
   setupRecetasForm();
@@ -108,6 +109,49 @@ function resetStandbyState() {
   state.standbyDepth = 0;
   elements.standbyOverlay?.classList.add('hidden');
   document.body.classList.remove('is-busy');
+}
+
+function getTodayDateValue() {
+  const now = new Date();
+  const local = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+  return local.toISOString().slice(0, 10);
+}
+
+function setupDateQuickButtons() {
+  document.querySelectorAll('input[type="date"][name="fecha"]').forEach((input) => {
+    if (!input || input.dataset.todayButtonReady === '1') return;
+    const parent = input.parentNode;
+    if (!parent) return;
+
+    input.dataset.todayButtonReady = '1';
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '0.6rem';
+    row.style.alignItems = 'stretch';
+    row.style.width = '100%';
+
+    parent.insertBefore(row, input);
+    row.appendChild(input);
+
+    input.style.flex = '1 1 auto';
+    input.style.minWidth = '0';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn--ghost';
+    button.textContent = 'Hoy';
+    button.style.whiteSpace = 'nowrap';
+    button.style.flex = '0 0 auto';
+    button.addEventListener('click', () => {
+      input.value = getTodayDateValue();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.focus();
+    });
+
+    row.appendChild(button);
+  });
 }
 
 function setupCatalogSync() {
